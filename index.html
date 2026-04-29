@@ -3,111 +3,158 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#e8a6a1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="輕帳" />
-  <meta name="theme-color" content="#ead2cf" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
-  <title>輕帳 Money Diary</title>
+  <title>輕帳</title>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
+  <main class="app-shell">
+    <header class="app-header">
       <div>
         <p class="eyebrow">MONEY DIARY</p>
-        <h1>輕帳</h1>
+        <h1 class="brand-title">輕帳</h1>
       </div>
-      <button id="themeToggle" class="icon-btn" aria-label="切換深色模式">☾</button>
+      <button class="icon-btn" id="themeToggle" aria-label="切換深色模式">☾</button>
     </header>
 
-    <main>
-      <section id="homePage" class="page active">
-        <section class="summary-card glass-card">
-          <div class="summary-head">
-            <span>本月結餘</span>
-            <span id="monthPill" class="month-pill">2026年4月</span>
+    <section class="balance-card soft-card">
+      <div class="card-row">
+        <div>
+          <p class="muted">本月結餘</p>
+          <h2 id="monthBalance">NT$ 0</h2>
+        </div>
+        <span class="month-pill" id="monthLabel">本月</span>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-box income-box">
+          <span>收入</span>
+          <strong id="monthIncome">NT$ 0</strong>
+        </div>
+        <div class="summary-box expense-box">
+          <span>支出</span>
+          <strong id="monthExpense">NT$ 0</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-card soft-card page page-home active" id="pageHome">
+      <div class="section-head">
+        <h2>快速記一筆</h2>
+        <input type="date" id="recordDate" class="date-input" />
+      </div>
+
+      <div class="segmented">
+        <button id="expenseTab" class="active" data-type="expense">支出</button>
+        <button id="incomeTab" data-type="income">收入</button>
+      </div>
+
+      <label class="field-label" for="amountInput">金額</label>
+      <div class="amount-field">
+        <span>NT$</span>
+        <input id="amountInput" type="number" inputmode="decimal" placeholder="0" min="0" />
+      </div>
+
+      <div class="category-head">
+        <span class="field-label">分類</span>
+        <button class="text-btn" id="openCategoryPanel">管理分類</button>
+      </div>
+      <div class="category-scroll" id="categoryList"></div>
+
+      <label class="field-label" for="noteInput">備註</label>
+      <input class="note-input" id="noteInput" placeholder="例如：午餐、車資、薪水" />
+
+      <button class="primary-btn" id="saveBtn">記下來</button>
+      <p class="toast" id="toast">已記錄</p>
+    </section>
+
+    <section class="records-card soft-card page page-home active" id="recordsBlock">
+      <div class="section-head compact">
+        <h2>最近紀錄</h2>
+        <button class="text-btn" id="clearAllBtn">清空</button>
+      </div>
+      <div class="record-list" id="recordList"></div>
+    </section>
+
+    <section class="soft-card page" id="pageStats">
+      <div class="section-head">
+        <h2>統計</h2>
+        <span class="month-pill" id="statsMonthLabel">本月</span>
+      </div>
+      <div class="budget-card">
+        <div class="budget-top">
+          <div>
+            <p class="muted">本月預算</p>
+            <strong id="budgetAmountText">NT$ 0</strong>
           </div>
-          <div id="balanceAmount" class="balance">NT$ 0</div>
-          <div class="mini-grid">
-            <div class="mini-card income">
-              <span>收入</span>
-              <strong id="incomeAmount">NT$ 0</strong>
-            </div>
-            <div class="mini-card expense">
-              <span>支出</span>
-              <strong id="expenseAmount">NT$ 0</strong>
-            </div>
-          </div>
-        </section>
+          <button class="text-btn" id="editBudgetBtn">設定</button>
+        </div>
+        <div class="progress-track"><div id="budgetProgress" class="progress-bar"></div></div>
+        <p class="budget-note" id="budgetNote">尚未設定預算</p>
+      </div>
+      <h3 class="sub-title">支出分類圖表</h3>
+      <div class="chart-list" id="chartList"></div>
+    </section>
 
-        <section class="quick-card glass-card">
-          <div class="section-title-row">
-            <h2>快速記一筆</h2>
-            <span id="todayLabel"></span>
-          </div>
+    <section class="soft-card page" id="pageSettings">
+      <h2>設定</h2>
+      <div class="setting-row">
+        <div>
+          <strong>分類管理</strong>
+          <p>自訂收入與支出分類，不使用 emoji。</p>
+        </div>
+        <button class="small-btn" id="openCategoryPanel2">管理</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <strong>資料匯出</strong>
+          <p>下載 CSV 備份你的記帳資料。</p>
+        </div>
+        <button class="small-btn" id="exportBtn">匯出</button>
+      </div>
+    </section>
+  </main>
 
-          <div class="segmented">
-            <button id="expenseTab" class="seg-btn active" data-type="expense">支出</button>
-            <button id="incomeTab" class="seg-btn" data-type="income">收入</button>
-          </div>
+  <nav class="bottom-nav">
+    <button class="active" data-page="home">首頁</button>
+    <button data-page="stats">統計</button>
+    <button data-page="settings">設定</button>
+  </nav>
 
-          <label class="field-label" for="amountInput">金額</label>
-          <div class="amount-box">
-            <input id="amountInput" type="number" inputmode="decimal" placeholder="0" min="0" />
-          </div>
+  <div class="sheet-mask" id="sheetMask"></div>
+  <section class="bottom-sheet" id="categoryPanel" aria-hidden="true">
+    <div class="sheet-handle"></div>
+    <div class="section-head compact">
+      <h2>自訂分類</h2>
+      <button class="text-btn" id="closeCategoryPanel">關閉</button>
+    </div>
+    <div class="segmented mini">
+      <button class="active" id="manageExpenseBtn" data-manage="expense">支出</button>
+      <button id="manageIncomeBtn" data-manage="income">收入</button>
+    </div>
+    <div class="add-category">
+      <input id="newCategoryInput" placeholder="新增分類名稱" />
+      <button id="addCategoryBtn">新增</button>
+    </div>
+    <div class="manage-list" id="manageCategoryList"></div>
+  </section>
 
-          <label class="field-label">分類</label>
-          <div id="categoryChips" class="chips"></div>
-
-          <label class="field-label" for="noteInput">備註</label>
-          <input id="noteInput" class="text-input" type="text" placeholder="例如：早餐、捷運、薪水" maxlength="40" />
-
-          <button id="saveBtn" class="primary-btn">儲存這一筆</button>
-        </section>
-
-        <section class="list-card glass-card">
-          <div class="section-title-row">
-            <h2>最近紀錄</h2>
-            <button id="clearAllBtn" class="text-btn danger">清空</button>
-          </div>
-          <div id="recordList" class="record-list"></div>
-        </section>
-      </section>
-
-      <section id="statsPage" class="page">
-        <section class="glass-card stats-card">
-          <h2>本月統計</h2>
-          <div id="categoryStats" class="stats-list"></div>
-        </section>
-      </section>
-
-      <section id="settingsPage" class="page">
-        <section class="glass-card settings-card">
-          <h2>設定</h2>
-          <p class="hint">資料目前存在這支手機／這個瀏覽器。未來可升級 Firebase 雲端同步。</p>
-          <button id="exportBtn" class="secondary-btn">匯出 CSV 備份</button>
-          <button id="importDemoBtn" class="secondary-btn">加入範例資料</button>
-          <button id="resetBtn" class="secondary-btn danger-outline">清除全部資料</button>
-        </section>
-      </section>
-    </main>
-
-    <nav class="bottom-nav" aria-label="主要導覽">
-      <button class="nav-btn active" data-page="homePage">首頁</button>
-      <button class="nav-btn" data-page="statsPage">統計</button>
-      <button class="nav-btn" data-page="settingsPage">設定</button>
-    </nav>
-
-    <div id="toast" class="toast">已儲存</div>
+  <div class="modal-mask" id="budgetModal">
+    <div class="modal-card">
+      <h2>設定每月預算</h2>
+      <p class="muted">此預算用來追蹤每月支出，不會限制記帳。</p>
+      <input id="budgetInput" class="note-input" type="number" inputmode="decimal" placeholder="例如：12000" />
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelBudgetBtn">取消</button>
+        <button class="primary-btn inline" id="saveBudgetBtn">儲存</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
-    }
-  </script>
 </body>
 </html>

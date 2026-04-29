@@ -1,93 +1,271 @@
-const STORAGE_KEY = 'money_diary_records_v2';
-const THEME_KEY = 'money_diary_theme_v2';
-const cats = {
-  expense: [
-    ['飲食','🍔'], ['交通','🚇'], ['日用品','🧴'], ['娛樂','🎮'], ['購物','🛍️'], ['醫療','💊'], ['其他','🧾']
-  ],
-  income: [
-    ['薪資','💼'], ['獎金','🎁'], ['兼職','🧑‍💻'], ['退款','↩️'], ['其他','✨']
-  ]
+const STORE_KEY = 'moneyDiary.records.v3';
+const CATEGORY_KEY = 'moneyDiary.categories.v3';
+const BUDGET_KEY = 'moneyDiary.budget.v3';
+const THEME_KEY = 'moneyDiary.theme.v3';
+
+const defaultCategories = {
+  expense: ['餐飲', '交通', '生活', '娛樂', '購物', '醫療'],
+  income: ['薪資', '獎金', '副業', '退款', '其他收入']
 };
-let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+let records = load(STORE_KEY, []);
+let categories = load(CATEGORY_KEY, defaultCategories);
 let currentType = 'expense';
-let currentCategory = cats.expense[0][0];
-const $ = id => document.getElementById(id);
-const fmt = n => 'NT$ ' + Number(n || 0).toLocaleString('zh-TW');
-const today = new Date();
-function dateKey(d){ return new Date(d).toISOString().slice(0,10); }
-function monthKey(d){ const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`; }
-function weekday(d){ return ['週日','週一','週二','週三','週四','週五','週六'][new Date(d).getDay()]; }
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); render(); }
-function showToast(msg='已儲存'){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
-function renderCategories(){
-  const box = $('categoryChips'); box.innerHTML='';
-  cats[currentType].forEach(([name,icon])=>{
-    const b=document.createElement('button'); b.className='chip'+(name===currentCategory?' active':''); b.textContent=`${icon} ${name}`;
-    b.onclick=()=>{ currentCategory=name; renderCategories(); };
-    box.appendChild(b);
+let selectedCategory = categories.expense[0];
+let manageType = 'expense';
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => `NT$ ${Number(n || 0).toLocaleString('zh-TW')}`;
+const todayISO = () => new Date().toISOString().slice(0,10);
+
+function load(key, fallback){
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+  catch { return fallback; }
+}
+function save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+function parseLocalDate(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function monthKey(date = new Date()){
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
+function isThisMonth(iso){ return iso && iso.slice(0,7) === monthKey(); }
+function weekdayText(iso){
+  const d = parseLocalDate(iso);
+  return `${d.getMonth()+1}/${d.getDate()}（${'日一二三四五六'[d.getDay()]}）`;
+}
+function ymdText(iso){
+  const d = parseLocalDate(iso);
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function init(){
+  $('recordDate').value = todayISO();
+  const now = new Date();
+  $('monthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
+  $('statsMonthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
+  $('recordDate').addEventListener('change', () => {});
+  bindEvents();
+  applyTheme();
+  renderAll();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+function bindEvents(){
+  $('expenseTab').onclick = () => switchType('expense');
+  $('incomeTab').onclick = () => switchType('income');
+  $('saveBtn').onclick = addRecord;
+  $('themeToggle').onclick = toggleTheme;
+  $('openCategoryPanel').onclick = openCategoryPanel;
+  $('openCategoryPanel2').onclick = openCategoryPanel;
+  $('closeCategoryPanel').onclick = closeCategoryPanel;
+  $('sheetMask').onclick = closeCategoryPanel;
+  $('addCategoryBtn').onclick = addCategory;
+  $('newCategoryInput').addEventListener('keydown', e => { if(e.key === 'Enter') addCategory(); });
+  $('manageExpenseBtn').onclick = () => switchManageType('expense');
+  $('manageIncomeBtn').onclick = () => switchManageType('income');
+  $('clearAllBtn').onclick = clearAll;
+  $('exportBtn').onclick = exportCSV;
+  $('editBudgetBtn').onclick = openBudgetModal;
+  $('cancelBudgetBtn').onclick = closeBudgetModal;
+  $('saveBudgetBtn').onclick = saveBudget;
+  $('budgetModal').onclick = (e) => { if(e.target.id === 'budgetModal') closeBudgetModal(); };
+
+  document.querySelectorAll('.bottom-nav button').forEach(btn => {
+    btn.onclick = () => switchPage(btn.dataset.page);
   });
 }
-function setType(type){ currentType=type; currentCategory=cats[type][0][0]; document.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.type===type)); renderCategories(); }
+
+function switchType(type){
+  currentType = type;
+  selectedCategory = categories[type][0] || '';
+  $('expenseTab').classList.toggle('active', type === 'expense');
+  $('incomeTab').classList.toggle('active', type === 'income');
+  renderCategories();
+}
+
+function switchPage(page){
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  $('pageHome').classList.toggle('active', page === 'home');
+  $('recordsBlock').classList.toggle('active', page === 'home');
+  $('pageStats').classList.toggle('active', page === 'stats');
+  $('pageSettings').classList.toggle('active', page === 'settings');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
 function addRecord(){
   const amount = Number($('amountInput').value);
-  if(!amount || amount <= 0){ showToast('請輸入金額'); $('amountInput').focus(); return; }
-  records.unshift({ id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()), type: currentType, amount, category: currentCategory, note: $('noteInput').value.trim(), createdAt: new Date().toISOString() });
-  $('amountInput').value=''; $('noteInput').value=''; save(); showToast('已新增一筆');
+  const date = $('recordDate').value || todayISO();
+  const note = $('noteInput').value.trim();
+  if(!amount || amount <= 0){ showToast('請輸入金額'); return; }
+  if(!selectedCategory){ showToast('請先選分類'); return; }
+  const record = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    date, type: currentType, amount, category: selectedCategory, note,
+    createdAt: new Date().toISOString()
+  };
+  records.unshift(record);
+  save(STORE_KEY, records);
+  $('amountInput').value = '';
+  $('noteInput').value = '';
+  $('recordDate').value = todayISO();
+  showToast('已記錄');
+  renderAll();
 }
-function deleteRecord(id){ records = records.filter(r=>r.id!==id); save(); showToast('已刪除'); }
+
+function showToast(text){
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1400);
+}
+
+function renderAll(){ renderSummary(); renderCategories(); renderRecords(); renderBudget(); renderChart(); renderManageList(); }
+
 function renderSummary(){
-  const m = monthKey(new Date()); const monthly = records.filter(r=>monthKey(r.createdAt)===m);
-  const income = monthly.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
-  const expense = monthly.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
-  $('monthPill').textContent = `${today.getFullYear()}年${today.getMonth()+1}月`;
-  $('todayLabel').textContent = `${today.getMonth()+1}/${today.getDate()}（${weekday(today)}）`;
-  $('balanceAmount').textContent = fmt(income-expense);
-  $('incomeAmount').textContent = fmt(income); $('expenseAmount').textContent = fmt(expense);
+  const monthRecords = records.filter(r => isThisMonth(r.date));
+  const income = monthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+  const expense = monthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+  $('monthBalance').textContent = fmt(income - expense);
+  $('monthIncome').textContent = fmt(income);
+  $('monthExpense').textContent = fmt(expense);
 }
-function renderList(){
-  const list=$('recordList'); list.innerHTML='';
-  if(!records.length){ list.innerHTML='<div class="empty">還沒有紀錄，先記下第一筆吧。</div>'; return; }
-  records.slice(0,40).forEach(r=>{
-    const icon = (cats[r.type].find(c=>c[0]===r.category)||['','🧾'])[1];
-    const item=document.createElement('div'); item.className='record-item';
-    item.innerHTML=`<div class="record-icon">${icon}</div><div class="record-main"><strong>${r.category}${r.note?'｜'+escapeHtml(r.note):''}</strong><span>${new Date(r.createdAt).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div><div><div class="record-money ${r.type}">${r.type==='income'?'+':'-'}${fmt(r.amount)}</div><button class="delete-btn" aria-label="刪除">×</button></div>`;
-    item.querySelector('.delete-btn').onclick=()=>deleteRecord(r.id);
-    list.appendChild(item);
+
+function renderCategories(){
+  const list = $('categoryList');
+  list.innerHTML = '';
+  if(!categories[currentType]?.length){
+    list.innerHTML = '<p class="empty">請先新增分類</p>';
+    return;
+  }
+  categories[currentType].forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'category-pill' + (cat === selectedCategory ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => { selectedCategory = cat; renderCategories(); };
+    list.appendChild(btn);
   });
 }
-function renderStats(){
-  const box=$('categoryStats'); box.innerHTML='';
-  const m=monthKey(new Date()); const expenses=records.filter(r=>r.type==='expense' && monthKey(r.createdAt)===m);
-  if(!expenses.length){ box.innerHTML='<div class="empty">本月還沒有支出資料。</div>'; return; }
-  const sum=expenses.reduce((s,r)=>s+r.amount,0); const map={}; expenses.forEach(r=>map[r.category]=(map[r.category]||0)+r.amount);
-  Object.entries(map).sort((a,b)=>b[1]-a[1]).forEach(([cat,val])=>{
-    const row=document.createElement('div'); row.className='stat-row'; const pct=sum?Math.round(val/sum*100):0;
-    row.innerHTML=`<div class="stat-top"><span>${cat}</span><span>${fmt(val)} · ${pct}%</span></div><div class="bar"><span style="width:${pct}%"></span></div>`;
+
+function renderRecords(){
+  const list = $('recordList');
+  const latest = [...records].sort((a,b)=> b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0,18);
+  if(!latest.length){ list.innerHTML = '<p class="empty">還沒有紀錄，先記第一筆。</p>'; return; }
+  list.innerHTML = '';
+  latest.forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'record-item';
+    const sign = r.type === 'income' ? '+' : '-';
+    item.innerHTML = `
+      <div class="record-meta">
+        <strong>${escapeHTML(r.category)}${r.note ? '｜' + escapeHTML(r.note) : ''}</strong>
+        <span>${ymdText(r.date)} · ${r.type === 'income' ? '收入' : '支出'}</span>
+      </div>
+      <div>
+        <span class="record-money ${r.type}">${sign}${fmt(r.amount)}</span>
+        <button class="delete-btn" data-id="${r.id}">刪除</button>
+      </div>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.onclick = () => deleteRecord(btn.dataset.id);
+  });
+}
+
+function renderBudget(){
+  const budget = Number(localStorage.getItem(BUDGET_KEY) || 0);
+  const expense = records.filter(r => r.type === 'expense' && isThisMonth(r.date)).reduce((s,r)=>s+r.amount,0);
+  $('budgetAmountText').textContent = budget ? fmt(budget) : '尚未設定';
+  if(!budget){ $('budgetProgress').style.width = '0%'; $('budgetNote').textContent = '設定預算後，這裡會顯示本月使用進度。'; return; }
+  const percent = Math.min(100, Math.round((expense / budget) * 100));
+  $('budgetProgress').style.width = percent + '%';
+  const left = budget - expense;
+  $('budgetNote').textContent = left >= 0 ? `已使用 ${percent}% ，剩餘 ${fmt(left)}` : `已超支 ${fmt(Math.abs(left))}`;
+}
+
+function renderChart(){
+  const box = $('chartList');
+  const data = {};
+  records.filter(r=>r.type==='expense' && isThisMonth(r.date)).forEach(r => data[r.category] = (data[r.category] || 0) + r.amount);
+  const rows = Object.entries(data).sort((a,b)=>b[1]-a[1]);
+  if(!rows.length){ box.innerHTML = '<p class="empty">本月還沒有支出資料。</p>'; return; }
+  const max = rows[0][1];
+  box.innerHTML = '';
+  rows.forEach(([cat, amount]) => {
+    const row = document.createElement('div');
+    row.className = 'chart-row';
+    row.innerHTML = `<strong>${escapeHTML(cat)}</strong><div class="bar-track"><div class="bar" style="width:${Math.max(8, amount/max*100)}%"></div></div><span>${fmt(amount)}</span>`;
     box.appendChild(row);
   });
 }
-function render(){ renderSummary(); renderList(); renderStats(); }
-function escapeHtml(s){ return s.replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+function openCategoryPanel(){ $('sheetMask').classList.add('show'); $('categoryPanel').classList.add('show'); $('categoryPanel').setAttribute('aria-hidden','false'); renderManageList(); }
+function closeCategoryPanel(){ $('sheetMask').classList.remove('show'); $('categoryPanel').classList.remove('show'); $('categoryPanel').setAttribute('aria-hidden','true'); }
+function switchManageType(type){
+  manageType = type;
+  $('manageExpenseBtn').classList.toggle('active', type === 'expense');
+  $('manageIncomeBtn').classList.toggle('active', type === 'income');
+  renderManageList();
+}
+function addCategory(){
+  const name = $('newCategoryInput').value.trim();
+  if(!name) return;
+  if(categories[manageType].includes(name)){ showToast('分類已存在'); return; }
+  categories[manageType].push(name);
+  save(CATEGORY_KEY, categories);
+  $('newCategoryInput').value = '';
+  if(currentType === manageType && !selectedCategory) selectedCategory = name;
+  renderAll();
+}
+function renderManageList(){
+  const list = $('manageCategoryList');
+  if(!list) return;
+  list.innerHTML = '';
+  categories[manageType].forEach(cat => {
+    const item = document.createElement('div');
+    item.className = 'manage-item';
+    item.innerHTML = `<span>${escapeHTML(cat)}</span><button data-cat="${escapeAttr(cat)}">刪除</button>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('button').forEach(btn => btn.onclick = () => removeCategory(btn.dataset.cat));
+}
+function removeCategory(cat){
+  if(categories[manageType].length <= 1){ showToast('至少保留一個分類'); return; }
+  categories[manageType] = categories[manageType].filter(c => c !== cat);
+  if(currentType === manageType && selectedCategory === cat) selectedCategory = categories[manageType][0];
+  save(CATEGORY_KEY, categories);
+  renderAll();
+}
+
+function openBudgetModal(){ $('budgetInput').value = localStorage.getItem(BUDGET_KEY) || ''; $('budgetModal').classList.add('show'); }
+function closeBudgetModal(){ $('budgetModal').classList.remove('show'); }
+function saveBudget(){
+  const value = Number($('budgetInput').value || 0);
+  if(value < 0){ showToast('預算不可小於 0'); return; }
+  localStorage.setItem(BUDGET_KEY, String(value));
+  closeBudgetModal();
+  renderBudget();
+}
+
+function clearAll(){
+  if(!records.length) return;
+  if(confirm('確定清空所有記帳資料？這個動作無法復原。')){
+    records = []; save(STORE_KEY, records); renderAll();
+  }
+}
+function deleteRecord(id){ records = records.filter(r => r.id !== id); save(STORE_KEY, records); renderAll(); }
 function exportCSV(){
-  const rows=[['日期','類型','金額','分類','備註']].concat(records.map(r=>[new Date(r.createdAt).toLocaleString('zh-TW'), r.type==='income'?'收入':'支出', r.amount, r.category, r.note||'']));
-  const csv='\ufeff'+rows.map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='輕帳備份.csv'; a.click(); URL.revokeObjectURL(a.href);
+  const header = ['日期','類型','金額','分類','備註','建立時間'];
+  const rows = records.map(r => [r.date, r.type === 'income' ? '收入' : '支出', r.amount, r.category, r.note || '', r.createdAt]);
+  const csv = [header, ...rows].map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `money-diary-${todayISO()}.csv`; a.click(); URL.revokeObjectURL(url);
 }
-function addDemo(){
-  const sample=[
-    {type:'expense',amount:80,category:'飲食',note:'早餐'}, {type:'expense',amount:45,category:'交通',note:'捷運'}, {type:'income',amount:1200,category:'兼職',note:'案件'}
-  ];
-  records = sample.map((r,i)=>({...r,id:String(Date.now()+i),createdAt:new Date(Date.now()-i*3600000).toISOString()})).concat(records); save(); showToast('已加入範例');
-}
-document.addEventListener('DOMContentLoaded',()=>{
-  if(localStorage.getItem(THEME_KEY)==='dark') document.body.classList.add('dark');
-  $('themeToggle').onclick=()=>{ document.body.classList.toggle('dark'); localStorage.setItem(THEME_KEY, document.body.classList.contains('dark')?'dark':'light'); };
-  document.querySelectorAll('.seg-btn').forEach(b=>b.onclick=()=>setType(b.dataset.type));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{ document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(b.dataset.page).classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); });
-  $('saveBtn').onclick=addRecord;
-  $('amountInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addRecord(); });
-  $('clearAllBtn').onclick=()=>{ if(confirm('確定清空全部紀錄？')){ records=[]; save(); } };
-  $('resetBtn').onclick=()=>{ if(confirm('確定清除全部資料？')){ records=[]; save(); showToast('已清除'); } };
-  $('exportBtn').onclick=exportCSV; $('importDemoBtn').onclick=addDemo;
-  renderCategories(); render();
-});
+function toggleTheme(){ document.body.classList.toggle('dark'); localStorage.setItem(THEME_KEY, document.body.classList.contains('dark') ? 'dark' : 'light'); }
+function applyTheme(){ if(localStorage.getItem(THEME_KEY)==='dark') document.body.classList.add('dark'); }
+function escapeHTML(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function escapeAttr(s){ return escapeHTML(s).replace(/'/g,'&#039;'); }
+
+document.addEventListener('DOMContentLoaded', init);
