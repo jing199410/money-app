@@ -208,15 +208,38 @@ function renderRecords(){
   });
 }
 
+function getCategoryBudgetTotal(){
+  return Object.values(categoryBudgets || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+function getMonthlyBudget(){
+  // 分類預算有設定時，總預算自動等於所有分類預算加總；沒有分類預算時才使用手動本月預算。
+  const categoryTotal = getCategoryBudgetTotal();
+  if(categoryTotal > 0) return categoryTotal;
+  return Number(localStorage.getItem(BUDGET_KEY) || 0);
+}
+
 function renderBudget(){
-  const budget = Number(localStorage.getItem(BUDGET_KEY) || 0);
+  const categoryTotal = getCategoryBudgetTotal();
+  const manualBudget = Number(localStorage.getItem(BUDGET_KEY) || 0);
+  const budget = getMonthlyBudget();
   const expense = records.filter(r => r.type === 'expense' && isThisMonth(r.date)).reduce((s,r)=>s+r.amount,0);
+
   $('budgetAmountText').textContent = budget ? fmt(budget) : '尚未設定';
-  if(!budget){ $('budgetProgress').style.width = '0%'; $('budgetNote').textContent = '設定預算後，這裡會顯示本月使用進度。'; return; }
+
+  if(!budget){
+    $('budgetProgress').style.width = '0%';
+    $('budgetNote').textContent = '設定分類預算後，本月總預算會自動加總。';
+    return;
+  }
+
   const percent = Math.min(100, Math.round((expense / budget) * 100));
   $('budgetProgress').style.width = percent + '%';
   const left = budget - expense;
-  $('budgetNote').textContent = left >= 0 ? `已使用 ${percent}% ，剩餘 ${fmt(left)}` : `已超支 ${fmt(Math.abs(left))}`;
+  const sourceText = categoryTotal > 0 ? `分類預算自動加總 ${fmt(categoryTotal)}` : `手動預算 ${fmt(manualBudget)}`;
+  $('budgetNote').textContent = left >= 0
+    ? `${sourceText}｜已使用 ${percent}% ，剩餘 ${fmt(left)}`
+    : `${sourceText}｜已超支 ${fmt(Math.abs(left))}`;
 }
 
 function getMonthlyCategoryExpense(){
@@ -342,9 +365,10 @@ function saveCategoryBudgets(){
   });
   categoryBudgets = next;
   save(CATEGORY_BUDGET_KEY, categoryBudgets);
+  localStorage.setItem(BUDGET_KEY, String(getCategoryBudgetTotal()));
   closeCategoryBudgetModal();
-  renderCategoryBudgets();
-  showToast('已儲存分類預算');
+  renderAll();
+  showToast('已更新總預算');
 }
 
 function clearAll(){

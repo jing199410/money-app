@@ -152,7 +152,7 @@
   <div class="modal-mask" id="budgetModal">
     <div class="modal-card">
       <h2>設定每月預算</h2>
-      <p class="muted">此預算用來追蹤每月支出，不會限制記帳。</p>
+      <p class="muted">若已設定分類預算，本月總預算會自動加總分類預算。</p>
       <input id="budgetInput" class="note-input" type="number" inputmode="decimal" placeholder="例如：12000" />
       <div class="modal-actions">
         <button class="ghost-btn" id="cancelBudgetBtn">取消</button>
@@ -164,7 +164,7 @@
   <div class="modal-mask" id="categoryBudgetModal">
     <div class="modal-card large">
       <h2>設定分類預算</h2>
-      <p class="muted">只會追蹤支出分類，例如餐飲、交通、生活。</p>
+      <p class="muted">設定後會自動加總到本月總預算，例如餐飲＋交通＋娛樂。</p>
       <div class="category-budget-editor" id="categoryBudgetEditor"></div>
       <div class="modal-actions">
         <button class="ghost-btn" id="cancelCategoryBudgetBtn">取消</button>
