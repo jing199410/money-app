@@ -1,6 +1,7 @@
 const STORE_KEY = 'moneyDiary.records.v3';
 const CATEGORY_KEY = 'moneyDiary.categories.v3';
 const BUDGET_KEY = 'moneyDiary.budget.v3';
+const CATEGORY_BUDGET_KEY = 'moneyDiary.categoryBudgets.v35';
 const THEME_KEY = 'moneyDiary.theme.v3';
 
 const defaultCategories = {
@@ -10,6 +11,7 @@ const defaultCategories = {
 
 let records = load(STORE_KEY, []);
 let categories = load(CATEGORY_KEY, defaultCategories);
+let categoryBudgets = load(CATEGORY_BUDGET_KEY, {});
 let currentType = 'expense';
 let selectedCategory = categories.expense[0];
 let manageType = 'expense';
@@ -31,13 +33,18 @@ function monthKey(date = new Date()){
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
 }
 function isThisMonth(iso){ return iso && iso.slice(0,7) === monthKey(); }
-function weekdayText(iso){
-  const d = parseLocalDate(iso);
-  return `${d.getMonth()+1}/${d.getDate()}（${'日一二三四五六'[d.getDay()]}）`;
-}
 function ymdText(iso){
   const d = parseLocalDate(iso);
   return `${d.getMonth()+1}/${d.getDate()}`;
+}
+function dateGroupText(iso){
+  const target = parseLocalDate(iso);
+  const today = parseLocalDate(todayISO());
+  const diff = Math.round((today - target) / 86400000);
+  if(diff === 0) return '今天';
+  if(diff === 1) return '昨天';
+  if(diff === 2) return '前天';
+  return `${target.getMonth()+1}/${target.getDate()}（${'日一二三四五六'[target.getDay()]}）`;
 }
 
 function init(){
@@ -45,7 +52,6 @@ function init(){
   const now = new Date();
   $('monthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
   $('statsMonthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
-  $('recordDate').addEventListener('change', () => {});
   bindEvents();
   applyTheme();
   renderAll();
@@ -71,6 +77,10 @@ function bindEvents(){
   $('cancelBudgetBtn').onclick = closeBudgetModal;
   $('saveBudgetBtn').onclick = saveBudget;
   $('budgetModal').onclick = (e) => { if(e.target.id === 'budgetModal') closeBudgetModal(); };
+  $('editCategoryBudgetBtn').onclick = openCategoryBudgetModal;
+  $('cancelCategoryBudgetBtn').onclick = closeCategoryBudgetModal;
+  $('saveCategoryBudgetBtn').onclick = saveCategoryBudgets;
+  $('categoryBudgetModal').onclick = (e) => { if(e.target.id === 'categoryBudgetModal') closeCategoryBudgetModal(); };
 
   document.querySelectorAll('.bottom-nav button').forEach(btn => {
     btn.onclick = () => switchPage(btn.dataset.page);
@@ -110,18 +120,34 @@ function addRecord(){
   $('amountInput').value = '';
   $('noteInput').value = '';
   $('recordDate').value = todayISO();
+  pulseSaved();
   showToast('已記錄');
   renderAll();
+}
+
+function pulseSaved(){
+  const card = $('pageHome');
+  card.classList.remove('saved-pulse');
+  void card.offsetWidth;
+  card.classList.add('saved-pulse');
 }
 
 function showToast(text){
   const t = $('toast');
   t.textContent = text;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1400);
+  setTimeout(()=>t.classList.remove('show'), 1500);
 }
 
-function renderAll(){ renderSummary(); renderCategories(); renderRecords(); renderBudget(); renderChart(); renderManageList(); }
+function renderAll(){
+  renderSummary();
+  renderCategories();
+  renderRecords();
+  renderBudget();
+  renderCategoryBudgets();
+  renderChart();
+  renderManageList();
+}
 
 function renderSummary(){
   const monthRecords = records.filter(r => isThisMonth(r.date));
@@ -150,10 +176,19 @@ function renderCategories(){
 
 function renderRecords(){
   const list = $('recordList');
-  const latest = [...records].sort((a,b)=> b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0,18);
+  const latest = [...records].sort((a,b)=> b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0,30);
   if(!latest.length){ list.innerHTML = '<p class="empty">還沒有紀錄，先記第一筆。</p>'; return; }
   list.innerHTML = '';
+  let currentGroup = '';
   latest.forEach(r => {
+    const group = dateGroupText(r.date);
+    if(group !== currentGroup){
+      currentGroup = group;
+      const groupEl = document.createElement('div');
+      groupEl.className = 'record-group-title';
+      groupEl.textContent = group;
+      list.appendChild(groupEl);
+    }
     const item = document.createElement('div');
     item.className = 'record-item';
     const sign = r.type === 'income' ? '+' : '-';
@@ -162,7 +197,7 @@ function renderRecords(){
         <strong>${escapeHTML(r.category)}${r.note ? '｜' + escapeHTML(r.note) : ''}</strong>
         <span>${ymdText(r.date)} · ${r.type === 'income' ? '收入' : '支出'}</span>
       </div>
-      <div>
+      <div class="record-side">
         <span class="record-money ${r.type}">${sign}${fmt(r.amount)}</span>
         <button class="delete-btn" data-id="${r.id}">刪除</button>
       </div>`;
@@ -184,10 +219,46 @@ function renderBudget(){
   $('budgetNote').textContent = left >= 0 ? `已使用 ${percent}% ，剩餘 ${fmt(left)}` : `已超支 ${fmt(Math.abs(left))}`;
 }
 
+function getMonthlyCategoryExpense(){
+  const data = {};
+  records.filter(r=>r.type==='expense' && isThisMonth(r.date)).forEach(r => {
+    data[r.category] = (data[r.category] || 0) + r.amount;
+  });
+  return data;
+}
+
+function renderCategoryBudgets(){
+  const box = $('categoryBudgetList');
+  if(!box) return;
+  const expenses = getMonthlyCategoryExpense();
+  const expenseCategories = categories.expense || [];
+  const rows = expenseCategories
+    .filter(cat => Number(categoryBudgets[cat] || 0) > 0 || Number(expenses[cat] || 0) > 0)
+    .map(cat => ({ cat, budget: Number(categoryBudgets[cat] || 0), used: Number(expenses[cat] || 0) }));
+  if(!rows.length){
+    box.innerHTML = '<p class="empty">尚未設定分類預算。可先設定餐飲、交通等個別預算。</p>';
+    return;
+  }
+  box.innerHTML = '';
+  rows.forEach(({cat, budget, used}) => {
+    const percent = budget ? Math.min(100, Math.round(used / budget * 100)) : 0;
+    const left = budget - used;
+    const row = document.createElement('div');
+    row.className = 'category-budget-row' + (budget && used > budget ? ' over' : '');
+    row.innerHTML = `
+      <div class="category-budget-top">
+        <strong>${escapeHTML(cat)}</strong>
+        <span>${budget ? `${fmt(used)} / ${fmt(budget)}` : `${fmt(used)} / 未設定`}</span>
+      </div>
+      <div class="mini-progress"><div style="width:${budget ? percent : 0}%"></div></div>
+      <p>${budget ? (left >= 0 ? `剩餘 ${fmt(left)}` : `已超支 ${fmt(Math.abs(left))}`) : '尚未設定此分類預算'}</p>`;
+    box.appendChild(row);
+  });
+}
+
 function renderChart(){
   const box = $('chartList');
-  const data = {};
-  records.filter(r=>r.type==='expense' && isThisMonth(r.date)).forEach(r => data[r.category] = (data[r.category] || 0) + r.amount);
+  const data = getMonthlyCategoryExpense();
   const rows = Object.entries(data).sort((a,b)=>b[1]-a[1]);
   if(!rows.length){ box.innerHTML = '<p class="empty">本月還沒有支出資料。</p>'; return; }
   const max = rows[0][1];
@@ -233,8 +304,10 @@ function renderManageList(){
 function removeCategory(cat){
   if(categories[manageType].length <= 1){ showToast('至少保留一個分類'); return; }
   categories[manageType] = categories[manageType].filter(c => c !== cat);
+  if(manageType === 'expense') delete categoryBudgets[cat];
   if(currentType === manageType && selectedCategory === cat) selectedCategory = categories[manageType][0];
   save(CATEGORY_KEY, categories);
+  save(CATEGORY_BUDGET_KEY, categoryBudgets);
   renderAll();
 }
 
@@ -246,6 +319,32 @@ function saveBudget(){
   localStorage.setItem(BUDGET_KEY, String(value));
   closeBudgetModal();
   renderBudget();
+  showToast('已儲存預算');
+}
+
+function openCategoryBudgetModal(){
+  const editor = $('categoryBudgetEditor');
+  editor.innerHTML = '';
+  (categories.expense || []).forEach(cat => {
+    const row = document.createElement('label');
+    row.className = 'category-budget-input-row';
+    row.innerHTML = `<span>${escapeHTML(cat)}</span><input type="number" inputmode="decimal" min="0" data-cat="${escapeAttr(cat)}" value="${Number(categoryBudgets[cat] || 0) || ''}" placeholder="0" />`;
+    editor.appendChild(row);
+  });
+  $('categoryBudgetModal').classList.add('show');
+}
+function closeCategoryBudgetModal(){ $('categoryBudgetModal').classList.remove('show'); }
+function saveCategoryBudgets(){
+  const next = {};
+  document.querySelectorAll('#categoryBudgetEditor input').forEach(input => {
+    const value = Number(input.value || 0);
+    if(value > 0) next[input.dataset.cat] = value;
+  });
+  categoryBudgets = next;
+  save(CATEGORY_BUDGET_KEY, categoryBudgets);
+  closeCategoryBudgetModal();
+  renderCategoryBudgets();
+  showToast('已儲存分類預算');
 }
 
 function clearAll(){

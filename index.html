@@ -96,6 +96,12 @@
         <div class="progress-track"><div id="budgetProgress" class="progress-bar"></div></div>
         <p class="budget-note" id="budgetNote">尚未設定預算</p>
       </div>
+      <div class="section-head compact inner-head">
+        <h3 class="sub-title">分類預算</h3>
+        <button class="text-btn" id="editCategoryBudgetBtn">設定</button>
+      </div>
+      <div class="category-budget-list" id="categoryBudgetList"></div>
+
       <h3 class="sub-title">支出分類圖表</h3>
       <div class="chart-list" id="chartList"></div>
     </section>
@@ -151,6 +157,18 @@
       <div class="modal-actions">
         <button class="ghost-btn" id="cancelBudgetBtn">取消</button>
         <button class="primary-btn inline" id="saveBudgetBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="categoryBudgetModal">
+    <div class="modal-card large">
+      <h2>設定分類預算</h2>
+      <p class="muted">只會追蹤支出分類，例如餐飲、交通、生活。</p>
+      <div class="category-budget-editor" id="categoryBudgetEditor"></div>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelCategoryBudgetBtn">取消</button>
+        <button class="primary-btn inline" id="saveCategoryBudgetBtn">儲存</button>
       </div>
     </div>
   </div>
