@@ -48,7 +48,7 @@
 
     <section class="quick-card soft-card page page-home active" id="pageHome">
       <div class="section-head">
-        <h2>快速記一筆</h2>
+        <h2>記錄收支</h2>
         <input type="date" id="recordDate" class="date-input" />
       </div>
 
@@ -110,6 +110,49 @@
       <div class="chart-list" id="chartList"></div>
     </section>
 
+
+    <section class="soft-card page" id="pageSearch">
+      <div class="section-head">
+        <h2>查詢紀錄</h2>
+        <button class="text-btn" id="resetSearchBtn">清除</button>
+      </div>
+
+      <div class="search-panel">
+        <label class="field-label" for="searchKeyword">關鍵字</label>
+        <input class="note-input" id="searchKeyword" placeholder="搜尋分類或備註" />
+
+        <div class="filter-grid">
+          <label>
+            <span class="field-label">開始日期</span>
+            <input class="note-input" id="searchStartDate" type="date" />
+          </label>
+          <label>
+            <span class="field-label">結束日期</span>
+            <input class="note-input" id="searchEndDate" type="date" />
+          </label>
+        </div>
+
+        <div class="filter-grid">
+          <label>
+            <span class="field-label">類型</span>
+            <select class="note-input" id="searchType">
+              <option value="all">全部</option>
+              <option value="expense">支出</option>
+              <option value="income">收入</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">分類</span>
+            <select class="note-input" id="searchCategory">
+              <option value="all">全部分類</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="search-summary" id="searchSummary">共 0 筆</div>
+      <div class="record-list" id="searchResultList"></div>
+    </section>
     <section class="soft-card page" id="pageSettings">
       <h2>設定</h2>
       <div class="setting-row">
@@ -139,6 +182,7 @@
   <nav class="bottom-nav">
     <button class="active" data-page="home">首頁</button>
     <button data-page="stats">統計</button>
+    <button data-page="search">查詢</button>
     <button data-page="settings">設定</button>
   </nav>
 

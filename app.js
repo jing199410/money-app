@@ -128,6 +128,7 @@ function bindEvents(){
   $('cancelCategoryBudgetBtn').onclick = closeCategoryBudgetModal;
   $('saveCategoryBudgetBtn').onclick = saveCategoryBudgets;
   $('categoryBudgetModal').onclick = (e) => { if(e.target.id === 'categoryBudgetModal') closeCategoryBudgetModal(); };
+  bindSearchEvents();
 
   document.querySelectorAll('.bottom-nav button').forEach(btn => {
     btn.onclick = () => switchPage(btn.dataset.page);
@@ -147,6 +148,7 @@ function switchPage(page){
   $('pageHome').classList.toggle('active', page === 'home');
   $('recordsBlock').classList.toggle('active', page === 'home');
   $('pageStats').classList.toggle('active', page === 'stats');
+  if($('pageSearch')) $('pageSearch').classList.toggle('active', page === 'search');
   $('pageSettings').classList.toggle('active', page === 'settings');
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -195,6 +197,8 @@ function renderAll(){
   renderChart();
   renderManageList();
   renderDataSafetyStatus();
+  renderSearchOptions();
+  renderSearchResults();
 }
 
 function renderSummary(){
@@ -653,3 +657,86 @@ function escapeHTML(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','
 function escapeAttr(s){ return escapeHTML(s).replace(/'/g,'&#039;'); }
 
 document.addEventListener('DOMContentLoaded', init);
+
+/* V4.2：查詢 / 篩選 */
+function bindSearchEvents(){
+  const ids = ['searchKeyword','searchStartDate','searchEndDate','searchType','searchCategory'];
+  ids.forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(eventName, renderSearchResults);
+  });
+  if($('resetSearchBtn')) $('resetSearchBtn').onclick = resetSearchFilters;
+}
+
+function renderSearchOptions(){
+  const select = $('searchCategory');
+  if(!select) return;
+  const current = select.value || 'all';
+  const allCategories = [...new Set([...(categories.expense || []), ...(categories.income || []), ...records.map(r => r.category).filter(Boolean)])];
+  select.innerHTML = '<option value="all">全部分類</option>' + allCategories.map(cat => `<option value="${escapeAttr(cat)}">${escapeHTML(cat)}</option>`).join('');
+  select.value = allCategories.includes(current) ? current : 'all';
+}
+
+function getFilteredRecords(){
+  const keyword = ($('searchKeyword')?.value || '').trim().toLowerCase();
+  const start = $('searchStartDate')?.value || '';
+  const end = $('searchEndDate')?.value || '';
+  const type = $('searchType')?.value || 'all';
+  const category = $('searchCategory')?.value || 'all';
+  return [...records]
+    .filter(r => !keyword || `${r.category || ''} ${r.note || ''}`.toLowerCase().includes(keyword))
+    .filter(r => !start || r.date >= start)
+    .filter(r => !end || r.date <= end)
+    .filter(r => type === 'all' || r.type === type)
+    .filter(r => category === 'all' || r.category === category)
+    .sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
+
+function renderSearchResults(){
+  const list = $('searchResultList');
+  if(!list) return;
+  const result = getFilteredRecords();
+  const income = result.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+  const expense = result.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+  if($('searchSummary')) $('searchSummary').textContent = `共 ${result.length} 筆｜收入 ${fmt(income)}｜支出 ${fmt(expense)}｜結餘 ${fmt(income - expense)}`;
+  if(!result.length){ list.innerHTML = '<p class="empty">找不到符合條件的紀錄。</p>'; return; }
+  list.innerHTML = '';
+  let currentGroup = '';
+  result.slice(0,120).forEach(r => {
+    const group = dateGroupText(r.date);
+    if(group !== currentGroup){
+      currentGroup = group;
+      const groupEl = document.createElement('div');
+      groupEl.className = 'record-group-title';
+      groupEl.textContent = group;
+      list.appendChild(groupEl);
+    }
+    const item = document.createElement('div');
+    item.className = 'record-item';
+    const sign = r.type === 'income' ? '+' : '-';
+    item.innerHTML = `
+      <div class="record-meta">
+        <strong>${escapeHTML(r.category)}${r.note ? '｜' + escapeHTML(r.note) : ''}</strong>
+        <span>${ymdText(r.date)} · ${r.type === 'income' ? '收入' : '支出'}</span>
+      </div>
+      <div class="record-side">
+        <span class="record-money ${r.type}">${sign}${fmt(r.amount)}</span>
+        <button class="edit-btn" data-id="${r.id}">編輯</button>
+        <button class="delete-btn" data-id="${r.id}">刪除</button>
+      </div>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.edit-btn').forEach(btn => btn.onclick = () => openEditRecordModal(btn.dataset.id));
+  list.querySelectorAll('.delete-btn').forEach(btn => btn.onclick = () => deleteRecord(btn.dataset.id));
+}
+
+function resetSearchFilters(){
+  if($('searchKeyword')) $('searchKeyword').value = '';
+  if($('searchStartDate')) $('searchStartDate').value = '';
+  if($('searchEndDate')) $('searchEndDate').value = '';
+  if($('searchType')) $('searchType').value = 'all';
+  if($('searchCategory')) $('searchCategory').value = 'all';
+  renderSearchResults();
+}
