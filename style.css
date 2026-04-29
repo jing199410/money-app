@@ -1,26 +1,79 @@
-{
-  "name": "輕帳 Money Diary",
-  "short_name": "輕帳",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#f8f2f1",
-  "theme_color": "#e8a6a1",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "description": "粉色貓咪記帳 PWA",
-  "version": "4.1"
+:root{
+  --bg:#f8f2f1; --card:#fffdfc; --text:#4a4547; --text-strong:#3d383a; --muted:#8e8587;
+  --primary:#e8a6a1; --primary-dark:#d98f8a; --line:#f1dedd;
+  --green:#7eae93; --red:#d86f75; --shadow:0 18px 46px rgba(116,72,70,.09);
+}
+*{box-sizing:border-box} html{background:var(--bg)}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",sans-serif;background:radial-gradient(circle at top right,#fff 0,#f8f2f1 42%,#f5edeb 100%);color:var(--text);padding-bottom:112px}
+body.dark{--bg:#1f1d1e;--card:#2a2728;--text:#e7dddd;--text-strong:#f3eceb;--muted:#b8adad;--line:#423637;--shadow:0 18px 46px rgba(0,0,0,.28);background:#1f1d1e}
+.app-shell{max-width:480px;margin:0 auto;padding:38px 22px 28px}.app-header{display:flex;align-items:center;justify-content:space-between;margin:10px 0 26px}.eyebrow{letter-spacing:.34em;color:var(--muted);font-size:13px;margin:0 0 4px}.brand-title{font-size:30px;line-height:1;margin:0;color:var(--primary);font-weight:850;letter-spacing:-.04em}.icon-btn{width:58px;height:58px;border:0;border-radius:22px;background:rgba(255,255,255,.78);box-shadow:var(--shadow);font-size:28px;color:var(--text)}
+.soft-card{background:rgba(255,253,252,.92);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:34px;padding:28px;margin-bottom:22px;backdrop-filter:blur(14px)}body.dark .soft-card, body.dark .icon-btn{background:rgba(42,39,40,.92)}.card-row,.section-head,.budget-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.muted{color:var(--muted);margin:0 0 8px;font-size:17px}.balance-card h2{font-size:44px;margin:0 0 20px;letter-spacing:-.06em}.month-pill{background:#efcccc;color:#9e5f5b;border-radius:999px;padding:10px 18px;font-weight:800;white-space:nowrap}.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.summary-box{border-radius:22px;padding:18px;background:#fff;box-shadow:0 14px 34px rgba(118,76,72,.07)}body.dark .summary-box{background:#332f30}.summary-box span{display:block;color:var(--muted);margin-bottom:8px}.summary-box strong{font-size:25px}.income-box strong{color:var(--green)}.expense-box strong{color:var(--red)}.today-strip{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:15px 18px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--muted);font-weight:850}.today-strip strong{color:var(--red);font-size:20px}body.dark .today-strip{background:#332f30}
+h1,h2,h3,strong{color:var(--text-strong)}h2{font-size:25px;margin:0 0 18px}.date-input{border:0;background:transparent;color:var(--text);font-weight:800;font-size:18px;text-align:right}.segmented{display:grid;grid-template-columns:1fr 1fr;gap:0;background:#f8f0ef;border:1px solid var(--line);border-radius:26px;padding:8px;margin:14px 0 24px}.segmented button{border:0;border-radius:21px;padding:16px;font-size:20px;font-weight:800;background:transparent;color:var(--muted)}.segmented button.active{background:var(--primary);color:#fff;box-shadow:0 12px 26px rgba(232,166,161,.36)}.segmented.mini button{padding:12px;font-size:16px}.field-label{display:block;color:var(--muted);font-size:16px;margin:14px 0 8px}.amount-field{display:flex;align-items:center;gap:10px;background:#fff;border-radius:26px;padding:18px 22px;box-shadow:inset 0 0 0 1px rgba(232,166,161,.15)}body.dark .amount-field, body.dark .note-input, body.dark .add-category input{background:#332f30;color:var(--text)}.amount-field span{font-size:20px;color:var(--muted);font-weight:700}.amount-field input{width:100%;border:0;background:transparent;text-align:right;font-size:42px;font-weight:850;color:var(--text);outline:none}.category-head{display:flex;justify-content:space-between;align-items:center}.text-btn{border:0;background:transparent;color:var(--primary-dark);font-weight:800;font-size:15px}.category-scroll{display:flex;gap:10px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}.category-pill{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:999px;padding:12px 18px;white-space:nowrap;font-weight:800;box-shadow:0 8px 18px rgba(105,71,69,.05)}body.dark .category-pill{background:#332f30}.category-pill.active{background:var(--primary);color:white;border-color:var(--primary)}.note-input{width:100%;border:1px solid var(--line);border-radius:20px;background:#fff;padding:16px 18px;font-size:16px;outline:none;color:var(--text)}.primary-btn{width:100%;border:0;background:var(--primary);color:white;border-radius:22px;margin-top:20px;padding:18px;font-size:18px;font-weight:850;box-shadow:0 14px 30px rgba(232,166,161,.38)}.primary-btn.inline{width:auto;margin-top:0}.ghost-btn{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:18px;padding:14px 18px;font-weight:800}.toast{opacity:0;transform:translateY(10px);text-align:center;color:var(--green);font-weight:900;margin:12px 0 0;transition:.25s}.toast.show{opacity:1;transform:translateY(0)}
+.compact h2{margin-bottom:0}.record-list{display:flex;flex-direction:column;gap:12px}.record-item{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:20px;padding:14px 16px;border:1px solid rgba(232,166,161,.13);animation:slideIn .22s ease}.record-meta strong{display:block}.record-meta span{color:var(--muted);font-size:13px}.record-money{font-weight:900;font-size:17px}.record-money.income{color:var(--green)}.record-money.expense{color:var(--red)}.edit-btn,.delete-btn{border:0;border-radius:12px;padding:8px 10px;font-weight:850}.edit-btn{background:#f6eeee;color:#8a7f82}.delete-btn{background:#f8eeee;color:#b96b68}.empty{color:var(--muted);text-align:center;padding:18px 0}@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page{display:none}.page.active{display:block}.page-home.active{display:block}.bottom-nav{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);width:min(440px,calc(100% - 34px));height:74px;background:rgba(255,253,252,.92);border:1px solid var(--line);box-shadow:0 16px 42px rgba(116,72,70,.13);border-radius:32px;display:grid;grid-template-columns:1fr 1fr 1fr;padding:9px;z-index:20;backdrop-filter:blur(16px)}body.dark .bottom-nav{background:rgba(42,39,40,.92)}.bottom-nav button{border:0;background:transparent;border-radius:23px;color:var(--muted);font-size:18px;font-weight:850}.bottom-nav button.active{background:var(--primary);color:#fff}.budget-card{background:#fff;border-radius:26px;padding:20px;margin-bottom:24px}body.dark .budget-card{background:#332f30}.budget-top strong{font-size:28px}.progress-track{height:13px;background:#f5e5e4;border-radius:99px;overflow:hidden;margin:16px 0 10px}.progress-bar{height:100%;width:0;background:var(--primary);border-radius:99px;transition:.3s}.progress-bar.over{background:var(--red)}.budget-note{margin:0;color:var(--muted)}.sub-title{margin:6px 0 14px}.chart-list{display:flex;flex-direction:column;gap:14px}.chart-row{display:grid;grid-template-columns:72px 1fr 82px;align-items:center;gap:10px}.bar-track{height:14px;background:#f4e4e3;border-radius:99px;overflow:hidden}.bar{height:100%;background:var(--primary);border-radius:99px}.setting-row{display:flex;justify-content:space-between;align-items:center;gap:20px;border-top:1px solid var(--line);padding:18px 0}.setting-row p{margin:5px 0 0;color:var(--muted);font-size:14px}.small-btn{border:0;border-radius:16px;background:var(--primary);color:white;padding:12px 16px;font-weight:900}.small-btn.ghost{background:#f9f0ef;color:var(--primary-dark);border:1px solid var(--line)}.setting-row.stack{align-items:flex-start;flex-direction:column}.button-row{display:flex;gap:10px;flex-wrap:wrap}
+.sheet-mask,.modal-mask{position:fixed;inset:0;background:rgba(33,24,24,.28);opacity:0;pointer-events:none;transition:.2s;z-index:40}.sheet-mask.show,.modal-mask.show{opacity:1;pointer-events:auto}.bottom-sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,110%);width:min(480px,100%);background:var(--card);border-radius:30px 30px 0 0;padding:14px 22px max(28px,env(safe-area-inset-bottom));z-index:50;transition:.25s;box-shadow:0 -18px 45px rgba(72,43,43,.16)}.bottom-sheet.show{transform:translate(-50%,0)}.sheet-handle{width:44px;height:5px;background:#e8d2d0;border-radius:99px;margin:0 auto 18px}.add-category{display:flex;gap:10px;margin:14px 0}.add-category input{flex:1;border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff}.add-category button{border:0;border-radius:16px;background:var(--primary);color:#fff;font-weight:900;padding:0 16px}.manage-list{display:flex;flex-direction:column;gap:10px;max-height:280px;overflow:auto}.manage-item{display:flex;align-items:center;justify-content:space-between;background:#f9f1f0;border-radius:16px;padding:12px 14px}.manage-item button{border:0;background:transparent;color:var(--red);font-weight:900}.modal-mask{display:grid;place-items:center;padding:22px}.modal-card{width:min(400px,100%);background:var(--card);border-radius:28px;padding:24px;transform:scale(.96);transition:.2s}.modal-mask.show .modal-card{transform:scale(1)}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+@media(max-width:380px){.app-shell{padding-left:16px;padding-right:16px}.balance-card h2{font-size:38px}.summary-box strong{font-size:22px}.soft-card{padding:22px;border-radius:30px}}
+
+/* V3.5：回饋感、分組紀錄、分類預算 */
+.quick-card.saved-pulse{animation:savedPulse .38s ease}
+@keyframes savedPulse{0%{transform:scale(1)}45%{transform:scale(1.012);box-shadow:0 22px 58px rgba(232,166,161,.22)}100%{transform:scale(1)}}
+.toast{position:fixed;left:50%;bottom:112px;transform:translate(-50%,18px);z-index:80;background:rgba(255,253,252,.96);border:1px solid var(--line);border-radius:999px;padding:12px 22px;box-shadow:0 16px 40px rgba(116,72,70,.14);color:var(--primary-dark);font-weight:900;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.record-group-title{font-size:14px;font-weight:900;color:var(--primary-dark);padding:10px 4px 0;letter-spacing:.04em}
+.record-side{display:flex;align-items:center;gap:6px;flex-shrink:0}.record-item{gap:12px}.record-meta{min-width:0}.record-meta strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.record-money{white-space:nowrap}
+.inner-head{margin:10px 0 12px}.sub-title{margin:0 0 14px}.category-budget-list{display:flex;flex-direction:column;gap:12px;margin-bottom:22px}.category-budget-row{background:#fff;border:1px solid rgba(232,166,161,.14);border-radius:20px;padding:14px 16px}.category-budget-row.over{border-color:rgba(216,111,117,.35);background:#fff7f7}body.dark .category-budget-row{background:#332f30}.category-budget-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.category-budget-top strong{font-size:16px}.category-budget-top span{font-size:13px;font-weight:850;color:var(--muted);white-space:nowrap}.mini-progress{height:10px;background:#f4e4e3;border-radius:999px;overflow:hidden;margin:11px 0 8px}.mini-progress div{height:100%;background:var(--primary);border-radius:999px;transition:.3s}.category-budget-row.over .mini-progress div{background:var(--red)}.category-budget-row p{margin:0;color:var(--muted);font-size:13px;font-weight:700}.modal-card.large{max-height:78vh;overflow:auto}.category-budget-editor{display:flex;flex-direction:column;gap:12px;margin-top:16px}.category-budget-input-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#faf1f0;border:1px solid var(--line);border-radius:18px;padding:12px 14px}.category-budget-input-row span{font-weight:900}.category-budget-input-row input{width:132px;border:0;background:#fff;border-radius:14px;padding:12px;text-align:right;font-size:16px;font-weight:850;color:var(--text);outline:none}body.dark .category-budget-input-row{background:#332f30}body.dark .category-budget-input-row input{background:#262324;color:var(--text)}
+@media(max-width:380px){.record-meta strong{max-width:150px}.category-budget-top{align-items:flex-start;flex-direction:column}.category-budget-input-row input{width:110px}}
+
+select.note-input{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%),linear-gradient(135deg, var(--muted) 50%, transparent 50%);background-position:calc(100% - 18px) 50%, calc(100% - 12px) 50%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:38px}
+.balance-card h2,.amount-field input{color:var(--text-strong)}
+.data-status{margin:4px 0 2px;color:var(--muted);font-size:13px;line-height:1.6}.data-status strong{color:var(--primary-dark)}
+
+/* V4.2：查詢篩選 + 字體質感微調 */
+body{font-size:15px}
+.app-shell{padding-top:34px}
+.eyebrow{font-size:12px;letter-spacing:.32em}.brand-title{font-size:24px;letter-spacing:-.03em}.icon-btn{width:54px;height:54px;font-size:25px;border-radius:20px}
+.soft-card{padding:24px;border-radius:30px}.balance-card h2{font-size:38px;line-height:1.12}.muted{font-size:15px}.summary-box strong{font-size:22px}.today-strip strong{font-size:18px}
+h2{font-size:22px;letter-spacing:-.02em}.date-input{font-size:15px}.segmented button{font-size:17px;padding:14px}.field-label{font-size:14px}.amount-field{padding:16px 20px}.amount-field span{font-size:17px}.amount-field input{font-size:36px}.note-input{font-size:15px;padding:14px 16px}.primary-btn{font-size:16px;padding:16px}.bottom-nav{grid-template-columns:repeat(4,1fr);height:70px}.bottom-nav button{font-size:16px}.record-money{font-size:15px}.record-meta span{font-size:12px}.category-pill{font-size:14px;padding:11px 16px}.month-pill{font-size:14px;padding:9px 16px}.budget-top strong{font-size:24px}.chart-row{grid-template-columns:66px 1fr 76px}.chart-row span{font-size:14px}.small-btn{font-size:14px}
+.search-panel{background:rgba(255,255,255,.56);border:1px solid var(--line);border-radius:24px;padding:16px;margin-bottom:16px}body.dark .search-panel{background:rgba(51,47,48,.72)}.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.filter-grid .field-label{margin-top:12px}.search-summary{color:var(--muted);font-size:13px;font-weight:850;margin:8px 2px 14px;line-height:1.6}.search-panel .note-input{background:var(--card)}
+@media(max-width:380px){.balance-card h2{font-size:34px}.amount-field input{font-size:32px}.bottom-nav button{font-size:15px}.filter-grid{grid-template-columns:1fr}.soft-card{padding:21px}.brand-title{font-size:22px}}
+
+/* V4.3：穩定體驗版 */
+.backup-reminder{margin:0;color:var(--green);font-size:13px;font-weight:850;line-height:1.6;background:rgba(143,191,159,.12);border:1px solid rgba(143,191,159,.22);border-radius:16px;padding:10px 12px}.backup-reminder.warn{color:var(--red);background:rgba(216,111,117,.10);border-color:rgba(216,111,117,.22)}
+.empty-cat{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:10px;padding:18px 4px}.empty-cat img{width:72px;height:72px;border-radius:22px;box-shadow:0 10px 24px rgba(116,72,70,.10)}.empty-cat.small img{width:58px;height:58px;border-radius:18px}.empty-cat p{margin:0;font-weight:800;line-height:1.6}
+.manage-actions{display:flex;gap:6px;align-items:center}.manage-actions button{border:0;background:transparent;font-weight:900;padding:8px 9px;border-radius:12px}.manage-actions .rename-cat{color:var(--primary-dark);background:rgba(232,166,161,.12)}.manage-actions .delete-cat{color:var(--red)}
+.search-panel > label{display:block;margin-top:12px}
+@media(max-width:380px){.manage-item{align-items:flex-start;gap:8px}.manage-actions{flex-wrap:wrap;justify-content:flex-end}}
+
+/* V4.4：查詢頁日期欄位手機版修正 */
+.filter-grid{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:10px;
+}
+.filter-grid label{
+  min-width:0;
+  display:block;
+}
+.filter-grid input[type="date"].note-input{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  height:52px;
+  padding:0 10px;
+  font-size:13px;
+  line-height:52px;
+  letter-spacing:-.02em;
+  text-align:left;
+  overflow:hidden;
+}
+.filter-grid .note-input,
+.search-panel .note-input{
+  max-width:100%;
+}
+@media(max-width:360px){
+  .filter-grid{
+    grid-template-columns:1fr;
+  }
+  .filter-grid input[type="date"].note-input{
+    font-size:14px;
+  }
 }
