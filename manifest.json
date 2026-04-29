@@ -1,26 +1,266 @@
-{
-  "name": "輕帳 Money Diary",
-  "short_name": "輕帳",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#f8f2f1",
-  "theme_color": "#e8a6a1",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "description": "粉色貓咪記帳 PWA",
-  "version": "4.1"
-}
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#e8a6a1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="輕帳" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+  <title>輕帳</title>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">MONEY DIARY</p>
+        <h1 class="brand-title">輕帳</h1>
+      </div>
+      <button class="icon-btn" id="themeToggle" aria-label="切換深色模式">☾</button>
+    </header>
+
+    <section class="balance-card soft-card">
+      <div class="card-row">
+        <div>
+          <p class="muted">本月結餘</p>
+          <h2 id="monthBalance">NT$ 0</h2>
+        </div>
+        <span class="month-pill" id="monthLabel">本月</span>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-box income-box">
+          <span>收入</span>
+          <strong id="monthIncome">NT$ 0</strong>
+        </div>
+        <div class="summary-box expense-box">
+          <span>支出</span>
+          <strong id="monthExpense">NT$ 0</strong>
+        </div>
+      </div>
+      <div class="today-strip">
+        <span>今日支出</span>
+        <strong id="todayExpense">NT$ 0</strong>
+      </div>
+    </section>
+
+    <section class="quick-card soft-card page page-home active" id="pageHome">
+      <div class="section-head">
+        <h2>記錄收支</h2>
+        <input type="date" id="recordDate" class="date-input" />
+      </div>
+
+      <div class="segmented">
+        <button id="expenseTab" class="active" data-type="expense">支出</button>
+        <button id="incomeTab" data-type="income">收入</button>
+      </div>
+
+      <label class="field-label" for="amountInput">金額</label>
+      <div class="amount-field">
+        <span>NT$</span>
+        <input id="amountInput" type="number" inputmode="decimal" placeholder="0" min="0" />
+      </div>
+
+      <div class="category-head">
+        <span class="field-label">分類</span>
+        <button class="text-btn" id="openCategoryPanel">管理分類</button>
+      </div>
+      <div class="category-scroll" id="categoryList"></div>
+
+      <label class="field-label" for="noteInput">備註</label>
+      <input class="note-input" id="noteInput" placeholder="例如：午餐、車資、薪水" />
+
+      <button class="primary-btn" id="saveBtn">記下來</button>
+      <p class="toast" id="toast">已記錄</p>
+    </section>
+
+    <section class="records-card soft-card page page-home active" id="recordsBlock">
+      <div class="section-head compact">
+        <h2>最近紀錄</h2>
+        <button class="text-btn" id="clearAllBtn">清空</button>
+      </div>
+      <div class="record-list" id="recordList"></div>
+    </section>
+
+    <section class="soft-card page" id="pageStats">
+      <div class="section-head">
+        <h2>統計</h2>
+        <span class="month-pill" id="statsMonthLabel">本月</span>
+      </div>
+      <div class="budget-card">
+        <div class="budget-top">
+          <div>
+            <p class="muted">本月預算</p>
+            <strong id="budgetAmountText">NT$ 0</strong>
+          </div>
+          <button class="text-btn" id="editBudgetBtn">設定</button>
+        </div>
+        <div class="progress-track"><div id="budgetProgress" class="progress-bar"></div></div>
+        <p class="budget-note" id="budgetNote">尚未設定預算</p>
+      </div>
+      <div class="section-head compact inner-head">
+        <h3 class="sub-title">分類預算</h3>
+        <button class="text-btn" id="editCategoryBudgetBtn">設定</button>
+      </div>
+      <div class="category-budget-list" id="categoryBudgetList"></div>
+
+      <h3 class="sub-title">支出分類圖表</h3>
+      <div class="chart-list" id="chartList"></div>
+    </section>
+
+
+    <section class="soft-card page" id="pageSearch">
+      <div class="section-head">
+        <h2>查詢紀錄</h2>
+        <button class="text-btn" id="resetSearchBtn">清除</button>
+      </div>
+
+      <div class="search-panel">
+        <label class="field-label" for="searchKeyword">關鍵字</label>
+        <input class="note-input" id="searchKeyword" placeholder="搜尋分類或備註" />
+
+        <div class="filter-grid">
+          <label>
+            <span class="field-label">開始日期</span>
+            <input class="note-input" id="searchStartDate" type="date" />
+          </label>
+          <label>
+            <span class="field-label">結束日期</span>
+            <input class="note-input" id="searchEndDate" type="date" />
+          </label>
+        </div>
+
+        <div class="filter-grid">
+          <label>
+            <span class="field-label">類型</span>
+            <select class="note-input" id="searchType">
+              <option value="all">全部</option>
+              <option value="expense">支出</option>
+              <option value="income">收入</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">分類</span>
+            <select class="note-input" id="searchCategory">
+              <option value="all">全部分類</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          <span class="field-label">排序</span>
+          <select class="note-input" id="searchSort">
+            <option value="dateDesc">日期新到舊</option>
+            <option value="dateAsc">日期舊到新</option>
+            <option value="amountDesc">金額大到小</option>
+            <option value="amountAsc">金額小到大</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="search-summary" id="searchSummary">共 0 筆</div>
+      <div class="record-list" id="searchResultList"></div>
+    </section>
+    <section class="soft-card page" id="pageSettings">
+      <h2>設定</h2>
+      <div class="setting-row">
+        <div>
+          <strong>分類管理</strong>
+          <p>自訂收入與支出分類，不使用 emoji。</p>
+        </div>
+        <button class="small-btn" id="openCategoryPanel2">管理</button>
+      </div>
+      <div class="setting-row stack">
+        <div>
+          <strong>資料備份 / 匯入</strong>
+          <p>單機版資料存在手機裡，請定期匯出 JSON 備份；換手機時可匯入還原。</p>
+        </div>
+        <p class="data-status" id="dataSafetyStatus">目前共有 0 筆紀錄｜上次安全快照：尚無</p>
+        <p class="backup-reminder" id="backupReminder">建議定期匯出 JSON 備份。</p>
+        <div class="button-row">
+          <button class="small-btn" id="exportBackupBtn">匯出 JSON 備份</button>
+          <button class="small-btn ghost" id="importBackupBtn">匯入 JSON / CSV</button>
+          <button class="small-btn ghost" id="restoreSnapshotBtn">還原安全快照</button>
+          <button class="small-btn ghost" id="exportBtn">匯出 CSV</button>
+        </div>
+        <input type="file" id="importFileInput" accept="application/json,.json,text/csv,.csv" hidden />
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="active" data-page="home">首頁</button>
+    <button data-page="stats">統計</button>
+    <button data-page="search">查詢</button>
+    <button data-page="settings">設定</button>
+  </nav>
+
+  <div class="sheet-mask" id="sheetMask"></div>
+  <section class="bottom-sheet" id="categoryPanel" aria-hidden="true">
+    <div class="sheet-handle"></div>
+    <div class="section-head compact">
+      <h2>自訂分類</h2>
+      <button class="text-btn" id="closeCategoryPanel">關閉</button>
+    </div>
+    <div class="segmented mini">
+      <button class="active" id="manageExpenseBtn" data-manage="expense">支出</button>
+      <button id="manageIncomeBtn" data-manage="income">收入</button>
+    </div>
+    <div class="add-category">
+      <input id="newCategoryInput" placeholder="新增分類名稱" />
+      <button id="addCategoryBtn">新增</button>
+    </div>
+    <div class="manage-list" id="manageCategoryList"></div>
+  </section>
+
+  <div class="modal-mask" id="budgetModal">
+    <div class="modal-card">
+      <h2>設定每月預算</h2>
+      <p class="muted">若已設定分類預算，本月總預算會自動加總分類預算。</p>
+      <input id="budgetInput" class="note-input" type="number" inputmode="decimal" placeholder="例如：12000" />
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelBudgetBtn">取消</button>
+        <button class="primary-btn inline" id="saveBudgetBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="categoryBudgetModal">
+    <div class="modal-card large">
+      <h2>設定分類預算</h2>
+      <p class="muted">設定後會自動加總到本月總預算，例如餐飲＋交通＋娛樂。</p>
+      <div class="category-budget-editor" id="categoryBudgetEditor"></div>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelCategoryBudgetBtn">取消</button>
+        <button class="primary-btn inline" id="saveCategoryBudgetBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="editRecordModal">
+    <div class="modal-card large">
+      <h2>編輯紀錄</h2>
+      <div class="segmented mini">
+        <button class="active" id="editExpenseBtn" data-edit-type="expense">支出</button>
+        <button id="editIncomeBtn" data-edit-type="income">收入</button>
+      </div>
+      <label class="field-label" for="editDateInput">日期</label>
+      <input id="editDateInput" class="note-input" type="date" />
+      <label class="field-label" for="editAmountInput">金額</label>
+      <input id="editAmountInput" class="note-input" type="number" inputmode="decimal" min="0" />
+      <label class="field-label" for="editCategoryInput">分類</label>
+      <select id="editCategoryInput" class="note-input"></select>
+      <label class="field-label" for="editNoteInput">備註</label>
+      <input id="editNoteInput" class="note-input" placeholder="可留空" />
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelEditBtn">取消</button>
+        <button class="primary-btn inline" id="saveEditBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
