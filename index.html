@@ -3,96 +3,111 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>輕帳 Money Diary</title>
-  <meta name="description" content="手機專用的粉奶油風格 PWA 記帳工具" />
-
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css" />
-
-  <meta name="theme-color" content="#f2d8d4" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="輕帳" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="icon" href="./icons/icon-192.png" />
+  <meta name="theme-color" content="#ead2cf" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+  <title>輕帳 Money Diary</title>
 </head>
 <body>
-  <main class="app-shell">
-    <section class="page page-home active" id="pageHome">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">MONEY DIARY</p>
-          <h1>輕帳</h1>
-        </div>
-        <button class="icon-btn" id="themeToggle" aria-label="切換深色模式">☾</button>
-      </header>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">MONEY DIARY</p>
+        <h1>輕帳</h1>
+      </div>
+      <button id="themeToggle" class="icon-btn" aria-label="切換深色模式">☾</button>
+    </header>
 
-      <section class="card balance-card">
-        <div class="balance-top">
-          <span>本月結餘</span>
-          <span class="pill" id="monthLabel">本月</span>
-        </div>
-        <strong class="balance" id="balanceText">NT$ 0</strong>
-        <div class="summary-grid">
-          <div class="mini-card income"><span>收入</span><b id="incomeText">NT$ 0</b></div>
-          <div class="mini-card expense"><span>支出</span><b id="expenseText">NT$ 0</b></div>
-        </div>
+    <main>
+      <section id="homePage" class="page active">
+        <section class="summary-card glass-card">
+          <div class="summary-head">
+            <span>本月結餘</span>
+            <span id="monthPill" class="month-pill">2026年4月</span>
+          </div>
+          <div id="balanceAmount" class="balance">NT$ 0</div>
+          <div class="mini-grid">
+            <div class="mini-card income">
+              <span>收入</span>
+              <strong id="incomeAmount">NT$ 0</strong>
+            </div>
+            <div class="mini-card expense">
+              <span>支出</span>
+              <strong id="expenseAmount">NT$ 0</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="quick-card glass-card">
+          <div class="section-title-row">
+            <h2>快速記一筆</h2>
+            <span id="todayLabel"></span>
+          </div>
+
+          <div class="segmented">
+            <button id="expenseTab" class="seg-btn active" data-type="expense">支出</button>
+            <button id="incomeTab" class="seg-btn" data-type="income">收入</button>
+          </div>
+
+          <label class="field-label" for="amountInput">金額</label>
+          <div class="amount-box">
+            <input id="amountInput" type="number" inputmode="decimal" placeholder="0" min="0" />
+          </div>
+
+          <label class="field-label">分類</label>
+          <div id="categoryChips" class="chips"></div>
+
+          <label class="field-label" for="noteInput">備註</label>
+          <input id="noteInput" class="text-input" type="text" placeholder="例如：早餐、捷運、薪水" maxlength="40" />
+
+          <button id="saveBtn" class="primary-btn">儲存這一筆</button>
+        </section>
+
+        <section class="list-card glass-card">
+          <div class="section-title-row">
+            <h2>最近紀錄</h2>
+            <button id="clearAllBtn" class="text-btn danger">清空</button>
+          </div>
+          <div id="recordList" class="record-list"></div>
+        </section>
       </section>
 
-      <section class="card quick-card">
-        <div class="section-title">
-          <h2>快速記一筆</h2>
-          <span id="todayLabel">今天</span>
-        </div>
-
-        <div class="segmented">
-          <button class="active" data-type="expense">支出</button>
-          <button data-type="income">收入</button>
-        </div>
-
-        <label class="field-label">金額</label>
-        <input id="amountInput" class="amount-input" inputmode="decimal" placeholder="0" />
-
-        <div class="category-row" id="categoryRow"></div>
-
-        <label class="field-label">備註</label>
-        <input id="noteInput" class="note-input" placeholder="例如：午餐、飲料、薪資" />
-
-        <button class="primary-btn" id="saveBtn">儲存這一筆</button>
+      <section id="statsPage" class="page">
+        <section class="glass-card stats-card">
+          <h2>本月統計</h2>
+          <div id="categoryStats" class="stats-list"></div>
+        </section>
       </section>
 
-      <section class="records-section">
-        <div class="section-title records-title">
-          <h2>最近紀錄</h2>
-          <button class="text-btn" id="clearBtn">清空</button>
-        </div>
-        <div id="recordList" class="record-list"></div>
+      <section id="settingsPage" class="page">
+        <section class="glass-card settings-card">
+          <h2>設定</h2>
+          <p class="hint">資料目前存在這支手機／這個瀏覽器。未來可升級 Firebase 雲端同步。</p>
+          <button id="exportBtn" class="secondary-btn">匯出 CSV 備份</button>
+          <button id="importDemoBtn" class="secondary-btn">加入範例資料</button>
+          <button id="resetBtn" class="secondary-btn danger-outline">清除全部資料</button>
+        </section>
       </section>
-    </section>
+    </main>
 
-    <section class="page" id="pageStats">
-      <header class="plain-header"><h1>統計</h1><p>本機資料統計，之後可升級雲端同步。</p></header>
-      <section class="card stat-card"><h2>分類支出</h2><div id="categoryStats"></div></section>
-      <button class="secondary-btn" id="exportBtn">匯出 CSV</button>
-    </section>
+    <nav class="bottom-nav" aria-label="主要導覽">
+      <button class="nav-btn active" data-page="homePage">首頁</button>
+      <button class="nav-btn" data-page="statsPage">統計</button>
+      <button class="nav-btn" data-page="settingsPage">設定</button>
+    </nav>
 
-    <section class="page" id="pageSettings">
-      <header class="plain-header"><h1>設定</h1><p>目前為本機資料版，資料儲存在這台手機／瀏覽器。</p></header>
-      <section class="card settings-card">
-        <h2>使用提醒</h2>
-        <p>要像 App 一樣使用：請用 Safari 開啟網址 → 分享 → 加入主畫面。</p>
-        <p>換手機前請先匯出 CSV，之後可升級 Firebase 雲端同步版。</p>
-      </section>
-    </section>
-  </main>
+    <div id="toast" class="toast">已儲存</div>
+  </div>
 
-  <nav class="bottom-nav" aria-label="主選單">
-    <button class="active" data-page="pageHome">首頁</button>
-    <button data-page="pageStats">統計</button>
-    <button data-page="pageSettings">設定</button>
-  </nav>
-
-  <div class="toast" id="toast">已儲存</div>
-  <script src="./app.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+    }
+  </script>
 </body>
 </html>
