@@ -4,6 +4,7 @@ const BUDGET_KEY = 'moneyDiary.budget.v3';
 const CATEGORY_BUDGET_KEY = 'moneyDiary.categoryBudgets.v35';
 const THEME_KEY = 'moneyDiary.theme.v3';
 const SAFETY_SNAPSHOT_KEY = 'moneyDiary.safetySnapshot.v41';
+const LAST_BACKUP_KEY = 'moneyDiary.lastBackupAt.v43';
 
 const defaultCategories = {
   expense: ['餐飲', '交通', '生活', '娛樂', '購物', '醫療'],
@@ -47,7 +48,7 @@ function migrateLegacyData(){
 function buildBackupPayload(){
   return {
     app: 'money-diary',
-    version: '4.1',
+    version: '4.3',
     exportedAt: new Date().toISOString(),
     recordCount: records.length,
     records,
@@ -215,8 +216,16 @@ function renderSummary(){
 function renderDataSafetyStatus(){
   if(!$('dataSafetyStatus')) return;
   const snapshot = load(SAFETY_SNAPSHOT_KEY, null);
-  const last = snapshot?.snapshotAt ? new Date(snapshot.snapshotAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '尚無';
-  $('dataSafetyStatus').innerHTML = `目前共有 <strong>${records.length}</strong> 筆紀錄｜上次安全快照：${last}`;
+  const lastSnapshot = snapshot?.snapshotAt ? new Date(snapshot.snapshotAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '尚無';
+  const lastBackupAt = localStorage.getItem(LAST_BACKUP_KEY);
+  const lastBackup = lastBackupAt ? new Date(lastBackupAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '尚無';
+  $('dataSafetyStatus').innerHTML = `目前共有 <strong>${records.length}</strong> 筆紀錄｜上次備份：${lastBackup}｜上次安全快照：${lastSnapshot}`;
+  const reminder = $('backupReminder');
+  if(reminder){
+    const days = lastBackupAt ? Math.floor((Date.now() - new Date(lastBackupAt).getTime()) / 86400000) : Infinity;
+    reminder.textContent = !records.length ? '目前尚無資料，開始記帳後再備份即可。' : (days === Infinity ? '尚未備份，建議先匯出一次 JSON 備份。' : days >= 7 ? `已 ${days} 天未備份，建議匯出 JSON。` : `備份狀態良好，上次備份距今 ${days} 天。`);
+    reminder.classList.toggle('warn', records.length && (days === Infinity || days >= 7));
+  }
 }
 
 function renderCategories(){
@@ -238,7 +247,7 @@ function renderCategories(){
 function renderRecords(){
   const list = $('recordList');
   const latest = [...records].sort((a,b)=> b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0,30);
-  if(!latest.length){ list.innerHTML = '<p class="empty">還沒有紀錄，先記第一筆。</p>'; return; }
+  if(!latest.length){ list.innerHTML = '<div class="empty-cat"><img src="icons/icon-192.png" alt=""><p>今天還沒記帳，小貓等你記第一筆。</p></div>'; return; }
   list.innerHTML = '';
   let currentGroup = '';
   latest.forEach(r => {
@@ -351,7 +360,7 @@ function renderChart(){
   const box = $('chartList');
   const data = getMonthlyCategoryExpense();
   const rows = Object.entries(data).sort((a,b)=>b[1]-a[1]);
-  if(!rows.length){ box.innerHTML = '<p class="empty">本月還沒有支出資料。</p>'; return; }
+  if(!rows.length){ box.innerHTML = '<div class="empty-cat small"><img src="icons/icon-192.png" alt=""><p>本月還沒有支出資料。</p></div>'; return; }
   const max = rows[0][1];
   box.innerHTML = '';
   rows.forEach(([cat, amount]) => {
@@ -387,13 +396,31 @@ function renderManageList(){
   categories[manageType].forEach(cat => {
     const item = document.createElement('div');
     item.className = 'manage-item';
-    item.innerHTML = `<span>${escapeHTML(cat)}</span><button data-cat="${escapeAttr(cat)}">刪除</button>`;
+    item.innerHTML = `<span>${escapeHTML(cat)}</span><div class="manage-actions"><button class="rename-cat" data-cat="${escapeAttr(cat)}">改名</button><button class="delete-cat" data-cat="${escapeAttr(cat)}">刪除</button></div>`;
     list.appendChild(item);
   });
-  list.querySelectorAll('button').forEach(btn => btn.onclick = () => removeCategory(btn.dataset.cat));
+  list.querySelectorAll('.rename-cat').forEach(btn => btn.onclick = () => renameCategory(btn.dataset.cat));
+  list.querySelectorAll('.delete-cat').forEach(btn => btn.onclick = () => removeCategory(btn.dataset.cat));
+}
+function renameCategory(cat){
+  const name = prompt('請輸入新的分類名稱', cat);
+  if(name === null) return;
+  const nextName = name.trim();
+  if(!nextName){ showToast('分類名稱不可空白'); return; }
+  if(nextName === cat) return;
+  if(categories[manageType].includes(nextName)){ showToast('分類已存在'); return; }
+  createSafetySnapshot('rename-category-before');
+  categories[manageType] = categories[manageType].map(c => c === cat ? nextName : c);
+  records = records.map(r => r.type === manageType && r.category === cat ? {...r, category: nextName, updatedAt: new Date().toISOString()} : r);
+  if(manageType === 'expense' && categoryBudgets[cat] !== undefined){ categoryBudgets[nextName] = categoryBudgets[cat]; delete categoryBudgets[cat]; }
+  if(currentType === manageType && selectedCategory === cat) selectedCategory = nextName;
+  save(STORE_KEY, records); save(CATEGORY_KEY, categories); save(CATEGORY_BUDGET_KEY, categoryBudgets);
+  renderAll(); showToast('分類已改名');
 }
 function removeCategory(cat){
   if(categories[manageType].length <= 1){ showToast('至少保留一個分類'); return; }
+  if(!confirm('確定刪除此分類？舊紀錄會保留原分類名稱，不會消失。')) return;
+  createSafetySnapshot('delete-category-before');
   categories[manageType] = categories[manageType].filter(c => c !== cat);
   if(manageType === 'expense') delete categoryBudgets[cat];
   if(currentType === manageType && selectedCategory === cat) selectedCategory = categories[manageType][0];
@@ -509,6 +536,8 @@ function exportCSV(){
   const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `money-diary-${todayISO()}.csv`; a.click(); URL.revokeObjectURL(url);
+  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+  renderDataSafetyStatus();
 }
 
 function exportBackup(){
@@ -520,6 +549,8 @@ function exportBackup(){
   a.download = `money-diary-backup-${todayISO()}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+  renderDataSafetyStatus();
   showToast(`已匯出 ${records.length} 筆備份`);
 }
 
@@ -530,29 +561,36 @@ function importBackupFile(event){
   reader.onload = () => {
     try{
       const text = String(reader.result || '');
+      let previewCount = 0;
+      if(file.name.toLowerCase().endsWith('.csv')) previewCount = previewCSV(text).length;
+      else previewCount = previewJSON(text).records.length;
+      if(!confirm(`確認匯入 ${previewCount} 筆資料？系統會先建立安全快照。`)){ event.target.value = ''; return; }
       createSafetySnapshot('import-before');
-      if(file.name.toLowerCase().endsWith('.csv')){
-        importCSV(text);
-      }else{
-        importJSON(text);
-      }
+      if(file.name.toLowerCase().endsWith('.csv')) importCSV(text); else importJSON(text);
+      localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
       event.target.value = '';
       renderAll();
-      showToast('匯入完成');
+      showToast(`匯入完成，共 ${previewCount} 筆`);
     }catch(err){
       console.error(err);
-      showToast('匯入失敗，檔案格式不正確');
+      event.target.value = '';
+      showToast('匯入失敗，檔案格式不正確，原資料未覆蓋');
     }
   };
   reader.readAsText(file, 'utf-8');
 }
 
-function importJSON(text){
+function previewJSON(text){
   const data = JSON.parse(text);
-  if(!Array.isArray(data.records)) throw new Error('missing records');
+  if(!data || !Array.isArray(data.records)) throw new Error('missing records');
+  const nextRecords = data.records.map(normalizeRecord).filter(Boolean);
+  if(data.records.length && !nextRecords.length) throw new Error('no valid records');
+  return {...data, records: nextRecords};
+}
+function importJSON(text){
+  const data = previewJSON(text);
   categories = normalizeCategories(data.categories || categories);
-  const importedRecords = data.records.map(normalizeRecord).filter(Boolean);
-  records = mergeById(records, importedRecords);
+  records = mergeById(records, data.records);
   categoryBudgets = data.categoryBudgets && typeof data.categoryBudgets === 'object' ? data.categoryBudgets : {};
   save(STORE_KEY, records);
   save(CATEGORY_KEY, categories);
@@ -562,19 +600,26 @@ function importJSON(text){
   applyTheme();
 }
 
-function importCSV(text){
+function previewCSV(text){
   const rows = parseCSV(text).filter(row => row.some(cell => String(cell).trim() !== ''));
   if(rows.length < 2) throw new Error('empty csv');
-  const header = rows[0].map(h => String(h).trim());
+  const header = rows[0].map(h => String(h).trim().replace(/^\uFEFF/, ''));
+  const required = ['日期','類型','金額','分類'];
+  if(required.some(name => !header.includes(name))) throw new Error('missing csv columns');
   const idx = (name) => header.indexOf(name);
   const next = rows.slice(1).map(row => normalizeRecord({
     date: row[idx('日期')],
     type: row[idx('類型')] === '收入' ? 'income' : row[idx('類型')] === '支出' ? 'expense' : row[idx('類型')],
     amount: row[idx('金額')],
     category: row[idx('分類')],
-    note: row[idx('備註')],
-    createdAt: row[idx('建立時間')]
+    note: idx('備註') >= 0 ? row[idx('備註')] : '',
+    createdAt: idx('建立時間') >= 0 ? row[idx('建立時間')] : ''
   })).filter(Boolean);
+  if(rows.length > 1 && !next.length) throw new Error('no valid csv rows');
+  return next;
+}
+function importCSV(text){
+  const next = previewCSV(text);
   records = mergeById(records, next);
   save(STORE_KEY, records);
   save(CATEGORY_KEY, categories);
@@ -660,7 +705,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 /* V4.2：查詢 / 篩選 */
 function bindSearchEvents(){
-  const ids = ['searchKeyword','searchStartDate','searchEndDate','searchType','searchCategory'];
+  const ids = ['searchKeyword','searchStartDate','searchEndDate','searchType','searchCategory','searchSort'];
   ids.forEach(id => {
     const el = $(id);
     if(!el) return;
@@ -685,13 +730,20 @@ function getFilteredRecords(){
   const end = $('searchEndDate')?.value || '';
   const type = $('searchType')?.value || 'all';
   const category = $('searchCategory')?.value || 'all';
-  return [...records]
+  const sort = $('searchSort')?.value || 'dateDesc';
+  const result = [...records]
     .filter(r => !keyword || `${r.category || ''} ${r.note || ''}`.toLowerCase().includes(keyword))
     .filter(r => !start || r.date >= start)
     .filter(r => !end || r.date <= end)
     .filter(r => type === 'all' || r.type === type)
-    .filter(r => category === 'all' || r.category === category)
-    .sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    .filter(r => category === 'all' || r.category === category);
+  const sorters = {
+    dateDesc: (a,b)=> b.date.localeCompare(a.date) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')),
+    dateAsc: (a,b)=> a.date.localeCompare(b.date) || String(a.createdAt || '').localeCompare(String(b.createdAt || '')),
+    amountDesc: (a,b)=> Number(b.amount||0) - Number(a.amount||0),
+    amountAsc: (a,b)=> Number(a.amount||0) - Number(b.amount||0)
+  };
+  return result.sort(sorters[sort] || sorters.dateDesc);
 }
 
 function renderSearchResults(){
@@ -738,5 +790,6 @@ function resetSearchFilters(){
   if($('searchEndDate')) $('searchEndDate').value = '';
   if($('searchType')) $('searchType').value = 'all';
   if($('searchCategory')) $('searchCategory').value = 'all';
+  if($('searchSort')) $('searchSort').value = 'dateDesc';
   renderSearchResults();
 }

@@ -148,6 +148,16 @@
             </select>
           </label>
         </div>
+
+        <label>
+          <span class="field-label">排序</span>
+          <select class="note-input" id="searchSort">
+            <option value="dateDesc">日期新到舊</option>
+            <option value="dateAsc">日期舊到新</option>
+            <option value="amountDesc">金額大到小</option>
+            <option value="amountAsc">金額小到大</option>
+          </select>
+        </label>
       </div>
 
       <div class="search-summary" id="searchSummary">共 0 筆</div>
@@ -168,6 +178,7 @@
           <p>單機版資料存在手機裡，請定期匯出 JSON 備份；換手機時可匯入還原。</p>
         </div>
         <p class="data-status" id="dataSafetyStatus">目前共有 0 筆紀錄｜上次安全快照：尚無</p>
+        <p class="backup-reminder" id="backupReminder">建議定期匯出 JSON 備份。</p>
         <div class="button-row">
           <button class="small-btn" id="exportBackupBtn">匯出 JSON 備份</button>
           <button class="small-btn ghost" id="importBackupBtn">匯入 JSON / CSV</button>
