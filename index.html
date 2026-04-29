@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#E8A6A1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="輕帳" />
+  <title>輕帳｜手機記帳 PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Money Diary</p>
+        <h1>輕帳</h1>
+      </div>
+      <button class="icon-btn" id="themeBtn" aria-label="切換深色模式">☾</button>
+    </header>
+
+    <main>
+      <section class="hero-card soft-card">
+        <div class="hero-row">
+          <div>
+            <p class="muted">本月結餘</p>
+            <div class="balance" id="monthBalance">NT$ 0</div>
+          </div>
+          <div class="pill" id="monthName">本月</div>
+        </div>
+        <div class="summary-grid">
+          <div>
+            <span>收入</span>
+            <strong class="income" id="monthIncome">NT$ 0</strong>
+          </div>
+          <div>
+            <span>支出</span>
+            <strong class="expense" id="monthExpense">NT$ 0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick-card soft-card">
+        <div class="section-title">
+          <h2>快速記一筆</h2>
+          <span id="todayText"></span>
+        </div>
+
+        <div class="segmented" role="tablist">
+          <button class="active" data-type="expense">支出</button>
+          <button data-type="income">收入</button>
+        </div>
+
+        <label class="amount-input">
+          <span>金額</span>
+          <input id="amountInput" inputmode="decimal" placeholder="0" autocomplete="off" />
+        </label>
+
+        <div class="category-wrap">
+          <div class="section-title mini">
+            <h3>分類</h3>
+            <button id="manageCategoryBtn" class="text-btn">管理</button>
+          </div>
+          <div class="category-list" id="categoryList"></div>
+        </div>
+
+        <label class="note-input">
+          <span>備註</span>
+          <input id="noteInput" placeholder="例如：午餐、捷運、薪資" autocomplete="off" />
+        </label>
+
+        <button class="primary-btn" id="saveBtn">儲存這筆</button>
+      </section>
+
+      <section class="records-section">
+        <div class="section-title">
+          <h2>近期紀錄</h2>
+          <button class="text-btn" id="exportBtn">匯出</button>
+        </div>
+        <div id="recordList" class="record-list"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="active" data-view="home">首頁</button>
+      <button data-view="stats">統計</button>
+      <button data-view="settings">設定</button>
+    </nav>
+  </div>
+
+  <dialog id="categoryDialog" class="modal">
+    <form method="dialog" class="modal-card">
+      <div class="section-title">
+        <h2>分類管理</h2>
+        <button class="icon-btn small" value="cancel">×</button>
+      </div>
+      <p class="muted small-text">先輸入名稱，再選收入或支出。長按分類可刪除。</p>
+      <div class="category-form">
+        <input id="newCategoryName" placeholder="新增分類名稱" />
+        <select id="newCategoryType">
+          <option value="expense">支出</option>
+          <option value="income">收入</option>
+        </select>
+      </div>
+      <button type="button" class="primary-btn" id="addCategoryBtn">新增分類</button>
+      <div id="allCategories" class="all-categories"></div>
+    </form>
+  </dialog>
+
+  <dialog id="toastDialog" class="toast-modal">
+    <div id="toastText"></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
