@@ -35,3 +35,7 @@
 
 V4.8 更新：本月結餘採 iOS 金融 App 字體比例、柔和負數色、數字跳動動畫。
 測試網址：https://jing199410.github.io/money-app/?v=4.8-finance-type
+
+
+V4.9 設定頁 UI 優化：備份按鈕分層、匯入/CSV 次要化、還原改為低風險文字按鈕。
+測試網址：https://jing199410.github.io/money-app/?v=4.9-settings-ui

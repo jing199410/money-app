@@ -194,3 +194,94 @@ body.dark .date-line{background:#332f30}
 }
 body.dark #monthBalance.negative{color:#d7a4a8 !important}
 body.dark #monthBalance.positive{color:#9fc7b0 !important}
+
+/* V4.9：設定頁備份區 UI 分層優化 */
+#pageSettings .setting-row.stack{
+  gap:14px;
+}
+#pageSettings .data-status{
+  width:100%;
+  padding:12px 14px;
+  border-radius:18px;
+  background:rgba(255,255,255,.58);
+  border:1px solid rgba(232,166,161,.18);
+}
+body.dark #pageSettings .data-status{
+  background:rgba(51,47,48,.72);
+}
+#pageSettings .backup-reminder{
+  width:100%;
+  padding:12px 14px;
+  border-radius:18px;
+  background:rgba(126,174,147,.10);
+  border:1px solid rgba(126,174,147,.18);
+  color:var(--muted);
+  font-weight:800;
+}
+.backup-actions{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:2px;
+}
+.backup-primary,
+.backup-secondary,
+.backup-restore{
+  -webkit-tap-highlight-color:transparent;
+  font-family:inherit;
+}
+.backup-primary{
+  width:100%;
+  min-height:54px;
+  border:0;
+  border-radius:22px;
+  background:var(--primary);
+  color:#fff;
+  font-size:16px;
+  font-weight:850;
+  letter-spacing:.02em;
+  box-shadow:0 14px 30px rgba(232,166,161,.28);
+  transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+}
+.backup-primary:active,
+.backup-secondary:active,
+.backup-restore:active{
+  transform:scale(.985);
+  opacity:.88;
+}
+.backup-secondary-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  width:100%;
+}
+.backup-secondary{
+  min-height:48px;
+  border-radius:19px;
+  border:1px solid var(--line);
+  background:#fff7f6;
+  color:var(--primary-dark);
+  font-size:14px;
+  font-weight:850;
+}
+.backup-restore{
+  align-self:center;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  padding:8px 10px;
+  text-decoration:underline;
+  text-decoration-color:rgba(142,133,135,.35);
+  text-underline-offset:4px;
+}
+body.dark .backup-secondary{
+  background:#332f30;
+  color:#e2aaa5;
+}
+@media(max-width:380px){
+  .backup-secondary-row{grid-template-columns:1fr;}
+  .backup-primary{min-height:52px;}
+}

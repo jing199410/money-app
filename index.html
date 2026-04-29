@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="輕帳" />
-  <link rel="manifest" href="manifest.json?v=4.8-finance-type" />
+  <link rel="manifest" href="manifest.json?v=4.9-settings-ui" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=4.8-finance-type" />
+  <link rel="stylesheet" href="style.css?v=4.9-settings-ui" />
   <title>輕帳</title>
 </head>
 <body>
@@ -179,11 +179,13 @@
         </div>
         <p class="data-status" id="dataSafetyStatus">目前共有 0 筆紀錄｜上次安全快照：尚無</p>
         <p class="backup-reminder" id="backupReminder">建議定期匯出 JSON 備份。</p>
-        <div class="button-row">
-          <button class="small-btn" id="exportBackupBtn">匯出 JSON 備份</button>
-          <button class="small-btn ghost" id="importBackupBtn">匯入 JSON / CSV</button>
-          <button class="small-btn ghost" id="restoreSnapshotBtn">還原安全快照</button>
-          <button class="small-btn ghost" id="exportBtn">匯出 CSV</button>
+        <div class="backup-actions">
+          <button class="backup-primary" id="exportBackupBtn">匯出備份</button>
+          <div class="backup-secondary-row">
+            <button class="backup-secondary" id="importBackupBtn">匯入資料</button>
+            <button class="backup-secondary" id="exportBtn">匯出 CSV</button>
+          </div>
+          <button class="backup-restore" id="restoreSnapshotBtn">還原安全快照</button>
         </div>
         <input type="file" id="importFileInput" accept="application/json,.json,text/csv,.csv" hidden />
       </div>
