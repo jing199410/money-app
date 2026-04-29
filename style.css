@@ -121,3 +121,22 @@ body.dark .date-line{background:#332f30}
   .date-line span{flex-basis:70px;font-size:13px}
   .date-line input[type="date"]{font-size:14px}
 }
+/* V4.8：每月結餘數字縮小（安全覆蓋） */
+.balance-amount {
+  font-size: 32px !important;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* NT$ 字小一點 */
+.balance-amount span {
+  font-size: 18px !important;
+  margin-right: 4px;
+}
+
+/* 手機再縮一點 */
+@media (max-width: 480px) {
+  .balance-amount {
+    font-size: 28px !important;
+  }
+}
