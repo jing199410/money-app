@@ -23,6 +23,35 @@ let editingType = 'expense';
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => `NT$ ${Number(n || 0).toLocaleString('zh-TW')}`;
+function renderMoneyHTML(el, value){
+  const numeric = Number(value || 0);
+  const sign = numeric < 0 ? '-' : '';
+  const abs = Math.abs(Math.round(numeric)).toLocaleString('zh-TW');
+  el.innerHTML = `<span class="currency">NT$</span><span class="value">${sign}${abs}</span>`;
+  el.classList.toggle('negative', numeric < 0);
+  el.classList.toggle('positive', numeric > 0);
+  el.classList.toggle('zero', numeric === 0);
+}
+function animateMoney(el, target){
+  if(!el) return;
+  const end = Number(target || 0);
+  const start = Number(el.dataset.value || 0);
+  el.dataset.value = String(end);
+  el.classList.remove('amount-tick');
+  void el.offsetWidth;
+  el.classList.add('amount-tick');
+  const duration = 520;
+  const started = performance.now();
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+  function frame(now){
+    const t = Math.min(1, (now - started) / duration);
+    const current = start + (end - start) * easeOutCubic(t);
+    renderMoneyHTML(el, current);
+    if(t < 1) requestAnimationFrame(frame);
+    else renderMoneyHTML(el, end);
+  }
+  requestAnimationFrame(frame);
+}
 const todayISO = () => new Date().toISOString().slice(0,10);
 
 function load(key, fallback){
@@ -206,7 +235,7 @@ function renderSummary(){
   const monthRecords = records.filter(r => isThisMonth(r.date));
   const income = monthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
   const expense = monthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
-  $('monthBalance').textContent = fmt(income - expense);
+  animateMoney($('monthBalance'), income - expense);
   $('monthIncome').textContent = fmt(income);
   $('monthExpense').textContent = fmt(expense);
   const todayExpense = records.filter(r => r.type === 'expense' && r.date === todayISO()).reduce((sum,r)=>sum+r.amount,0);

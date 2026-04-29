@@ -31,3 +31,7 @@
 再重新開 Safari 加入主畫面。
 
 更新前建議先匯出 JSON 備份。
+
+
+V4.8 更新：本月結餘採 iOS 金融 App 字體比例、柔和負數色、數字跳動動畫。
+測試網址：https://jing199410.github.io/money-app/?v=4.8-finance-type
