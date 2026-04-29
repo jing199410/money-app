@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="輕帳" />
-  <link rel="manifest" href="manifest.json?v=4.5" />
+  <link rel="manifest" href="manifest.json?v=4.7-safe" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=4.5" />
+  <link rel="stylesheet" href="style.css?v=4.7-safe" />
   <title>輕帳</title>
 </head>
 <body>
@@ -121,14 +121,14 @@
         <label class="field-label" for="searchKeyword">關鍵字</label>
         <input class="note-input" id="searchKeyword" placeholder="搜尋分類或備註" />
 
-        <div class="filter-grid">
-          <label>
-            <span class="field-label">開始日期</span>
-            <input class="note-input" id="searchStartDate" type="date" />
+        <div class="date-range-box">
+          <label class="date-line" for="searchStartDate">
+            <span>開始日期</span>
+            <input id="searchStartDate" type="date" />
           </label>
-          <label>
-            <span class="field-label">結束日期</span>
-            <input class="note-input" id="searchEndDate" type="date" />
+          <label class="date-line" for="searchEndDate">
+            <span>結束日期</span>
+            <input id="searchEndDate" type="date" />
           </label>
         </div>
 

@@ -1,3 +1,18 @@
+輕帳 PWA V4.7 Safe 日期區修正版
+
+更新方式：
+1. 解壓縮本資料夾
+2. 全部檔案上傳覆蓋 GitHub repo 最外層
+3. Commit changes
+4. 用 Safari 開：
+   https://jing199410.github.io/money-app/?v=4.7-safe
+5. 確認正常後，再重新加入主畫面
+
+本版修正：
+- 不是單純補 CSS，而是直接調整查詢頁日期欄位 HTML 結構
+- 開始日期 / 結束日期改為上下兩列
+- 避免手機 Safari date input 在窄螢幕擠壓版面
+
 輕帳 V4.5 修正版部署教學
 
 這版修復：「加入手機主畫面後打開變成 app.js 程式碼」的問題。
