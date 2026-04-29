@@ -15,6 +15,8 @@ let categoryBudgets = load(CATEGORY_BUDGET_KEY, {});
 let currentType = 'expense';
 let selectedCategory = categories.expense[0];
 let manageType = 'expense';
+let editingRecordId = null;
+let editingType = 'expense';
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => `NT$ ${Number(n || 0).toLocaleString('zh-TW')}`;
@@ -73,6 +75,14 @@ function bindEvents(){
   $('manageIncomeBtn').onclick = () => switchManageType('income');
   $('clearAllBtn').onclick = clearAll;
   $('exportBtn').onclick = exportCSV;
+  $('exportBackupBtn').onclick = exportBackup;
+  $('importBackupBtn').onclick = () => $('importFileInput').click();
+  $('importFileInput').onchange = importBackupFile;
+  $('cancelEditBtn').onclick = closeEditRecordModal;
+  $('saveEditBtn').onclick = saveEditedRecord;
+  $('editExpenseBtn').onclick = () => switchEditType('expense');
+  $('editIncomeBtn').onclick = () => switchEditType('income');
+  $('editRecordModal').onclick = (e) => { if(e.target.id === 'editRecordModal') closeEditRecordModal(); };
   $('editBudgetBtn').onclick = openBudgetModal;
   $('cancelBudgetBtn').onclick = closeBudgetModal;
   $('saveBudgetBtn').onclick = saveBudget;
@@ -156,6 +166,8 @@ function renderSummary(){
   $('monthBalance').textContent = fmt(income - expense);
   $('monthIncome').textContent = fmt(income);
   $('monthExpense').textContent = fmt(expense);
+  const todayExpense = records.filter(r => r.type === 'expense' && r.date === todayISO()).reduce((sum,r)=>sum+r.amount,0);
+  if($('todayExpense')) $('todayExpense').textContent = fmt(todayExpense);
 }
 
 function renderCategories(){
@@ -199,9 +211,13 @@ function renderRecords(){
       </div>
       <div class="record-side">
         <span class="record-money ${r.type}">${sign}${fmt(r.amount)}</span>
+        <button class="edit-btn" data-id="${r.id}">編輯</button>
         <button class="delete-btn" data-id="${r.id}">刪除</button>
       </div>`;
     list.appendChild(item);
+  });
+  list.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.onclick = () => openEditRecordModal(btn.dataset.id);
   });
   list.querySelectorAll('.delete-btn').forEach(btn => {
     btn.onclick = () => deleteRecord(btn.dataset.id);
@@ -227,19 +243,22 @@ function renderBudget(){
 
   $('budgetAmountText').textContent = budget ? fmt(budget) : '尚未設定';
 
+  $('budgetProgress').classList.remove('over');
   if(!budget){
     $('budgetProgress').style.width = '0%';
     $('budgetNote').textContent = '設定分類預算後，本月總預算會自動加總。';
     return;
   }
 
-  const percent = Math.min(100, Math.round((expense / budget) * 100));
+  const rawPercent = Math.round((expense / budget) * 100);
+  const percent = Math.min(100, rawPercent);
   $('budgetProgress').style.width = percent + '%';
   const left = budget - expense;
+  if(left < 0) $('budgetProgress').classList.add('over');
   const sourceText = categoryTotal > 0 ? `分類預算自動加總 ${fmt(categoryTotal)}` : `手動預算 ${fmt(manualBudget)}`;
   $('budgetNote').textContent = left >= 0
-    ? `${sourceText}｜已使用 ${percent}% ，剩餘 ${fmt(left)}`
-    : `${sourceText}｜已超支 ${fmt(Math.abs(left))}`;
+    ? `${sourceText}｜已使用 ${rawPercent}% ，剩餘 ${fmt(left)}`
+    : `${sourceText}｜已使用 ${rawPercent}% ，已超支 ${fmt(Math.abs(left))}`;
 }
 
 function getMonthlyCategoryExpense(){
@@ -271,7 +290,7 @@ function renderCategoryBudgets(){
     row.innerHTML = `
       <div class="category-budget-top">
         <strong>${escapeHTML(cat)}</strong>
-        <span>${budget ? `${fmt(used)} / ${fmt(budget)}` : `${fmt(used)} / 未設定`}</span>
+        <span>${budget ? `已用 ${fmt(used)} / 預算 ${fmt(budget)}` : `已用 ${fmt(used)} / 預算未設定`}</span>
       </div>
       <div class="mini-progress"><div style="width:${budget ? percent : 0}%"></div></div>
       <p>${budget ? (left >= 0 ? `剩餘 ${fmt(left)}` : `已超支 ${fmt(Math.abs(left))}`) : '尚未設定此分類預算'}</p>`;
@@ -378,6 +397,60 @@ function clearAll(){
   }
 }
 function deleteRecord(id){ records = records.filter(r => r.id !== id); save(STORE_KEY, records); renderAll(); }
+
+function openEditRecordModal(id){
+  const record = records.find(r => r.id === id);
+  if(!record) return;
+  editingRecordId = id;
+  editingType = record.type;
+  $('editDateInput').value = record.date || todayISO();
+  $('editAmountInput').value = record.amount || '';
+  $('editNoteInput').value = record.note || '';
+  switchEditType(record.type, false);
+  $('editCategoryInput').value = record.category;
+  $('editRecordModal').classList.add('show');
+}
+
+function closeEditRecordModal(){
+  $('editRecordModal').classList.remove('show');
+  editingRecordId = null;
+}
+
+function switchEditType(type, resetCategory = true){
+  editingType = type;
+  $('editExpenseBtn').classList.toggle('active', type === 'expense');
+  $('editIncomeBtn').classList.toggle('active', type === 'income');
+  const select = $('editCategoryInput');
+  select.innerHTML = '';
+  (categories[type] || []).forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    select.appendChild(option);
+  });
+  if(resetCategory && categories[type]?.length) select.value = categories[type][0];
+}
+
+function saveEditedRecord(){
+  const amount = Number($('editAmountInput').value);
+  const date = $('editDateInput').value || todayISO();
+  const category = $('editCategoryInput').value;
+  const note = $('editNoteInput').value.trim();
+  if(!editingRecordId) return;
+  if(!amount || amount <= 0){ showToast('請輸入金額'); return; }
+  if(!category){ showToast('請選擇分類'); return; }
+
+  records = records.map(r => r.id === editingRecordId
+    ? {...r, date, type: editingType, amount, category, note, updatedAt: new Date().toISOString()}
+    : r
+  );
+  save(STORE_KEY, records);
+  closeEditRecordModal();
+  renderAll();
+  showToast('已更新');
+}
+
+
 function exportCSV(){
   const header = ['日期','類型','金額','分類','備註','建立時間'];
   const rows = records.map(r => [r.date, r.type === 'income' ? '收入' : '支出', r.amount, r.category, r.note || '', r.createdAt]);
@@ -386,8 +459,133 @@ function exportCSV(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `money-diary-${todayISO()}.csv`; a.click(); URL.revokeObjectURL(url);
 }
+
+function exportBackup(){
+  const payload = {
+    app: 'money-diary',
+    version: '4.0',
+    exportedAt: new Date().toISOString(),
+    records,
+    categories,
+    categoryBudgets,
+    monthlyBudget: localStorage.getItem(BUDGET_KEY) || '0',
+    theme: localStorage.getItem(THEME_KEY) || 'light'
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `money-diary-backup-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('已匯出備份');
+}
+
+function importBackupFile(event){
+  const file = event.target.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const text = String(reader.result || '');
+      if(file.name.toLowerCase().endsWith('.csv')){
+        importCSV(text);
+      }else{
+        importJSON(text);
+      }
+      event.target.value = '';
+      renderAll();
+      showToast('匯入完成');
+    }catch(err){
+      console.error(err);
+      showToast('匯入失敗，檔案格式不正確');
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function importJSON(text){
+  const data = JSON.parse(text);
+  if(!Array.isArray(data.records)) throw new Error('missing records');
+  categories = normalizeCategories(data.categories || categories);
+  records = data.records.map(normalizeRecord).filter(Boolean);
+  categoryBudgets = data.categoryBudgets && typeof data.categoryBudgets === 'object' ? data.categoryBudgets : {};
+  save(STORE_KEY, records);
+  save(CATEGORY_KEY, categories);
+  save(CATEGORY_BUDGET_KEY, categoryBudgets);
+  if(data.monthlyBudget !== undefined) localStorage.setItem(BUDGET_KEY, String(data.monthlyBudget || 0));
+  if(data.theme) localStorage.setItem(THEME_KEY, data.theme);
+  applyTheme();
+}
+
+function importCSV(text){
+  const rows = parseCSV(text).filter(row => row.some(cell => String(cell).trim() !== ''));
+  if(rows.length < 2) throw new Error('empty csv');
+  const header = rows[0].map(h => String(h).trim());
+  const idx = (name) => header.indexOf(name);
+  const next = rows.slice(1).map(row => normalizeRecord({
+    date: row[idx('日期')],
+    type: row[idx('類型')] === '收入' ? 'income' : row[idx('類型')] === '支出' ? 'expense' : row[idx('類型')],
+    amount: row[idx('金額')],
+    category: row[idx('分類')],
+    note: row[idx('備註')],
+    createdAt: row[idx('建立時間')]
+  })).filter(Boolean);
+  records = next;
+  save(STORE_KEY, records);
+  save(CATEGORY_KEY, categories);
+}
+
+function normalizeRecord(r){
+  if(!r) return null;
+  const amount = Number(r.amount || 0);
+  const type = r.type === 'income' || r.type === '收入' ? 'income' : 'expense';
+  const category = String(r.category || (categories[type]?.[0] || '未分類')).trim();
+  if(!amount || amount <= 0) return null;
+  if(!categories[type]) categories[type] = [];
+  if(category && !categories[type].includes(category)) categories[type].push(category);
+  return {
+    id: r.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random())),
+    date: r.date || todayISO(),
+    type,
+    amount,
+    category,
+    note: r.note || '',
+    createdAt: r.createdAt || new Date().toISOString(),
+    updatedAt: r.updatedAt || ''
+  };
+}
+
+function normalizeCategories(input){
+  const next = {expense:[...defaultCategories.expense], income:[...defaultCategories.income]};
+  if(input && Array.isArray(input.expense) && input.expense.length) next.expense = input.expense.map(String);
+  if(input && Array.isArray(input.income) && input.income.length) next.income = input.income.map(String);
+  return next;
+}
+
+function parseCSV(text){
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const char = text[i], next = text[i+1];
+    if(char === '"' && inQuotes && next === '"'){ cell += '"'; i++; continue; }
+    if(char === '"'){ inQuotes = !inQuotes; continue; }
+    if(char === ',' && !inQuotes){ row.push(cell); cell = ''; continue; }
+    if((char === '\n' || char === '\r') && !inQuotes){
+      if(char === '\r' && next === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = ''; continue;
+    }
+    cell += char;
+  }
+  row.push(cell); rows.push(row);
+  return rows;
+}
+
+
 function toggleTheme(){ document.body.classList.toggle('dark'); localStorage.setItem(THEME_KEY, document.body.classList.contains('dark') ? 'dark' : 'light'); }
-function applyTheme(){ if(localStorage.getItem(THEME_KEY)==='dark') document.body.classList.add('dark'); }
+function applyTheme(){
+  document.body.classList.toggle('dark', localStorage.getItem(THEME_KEY)==='dark');
+}
 function escapeHTML(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 function escapeAttr(s){ return escapeHTML(s).replace(/'/g,'&#039;'); }
 

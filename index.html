@@ -40,6 +40,10 @@
           <strong id="monthExpense">NT$ 0</strong>
         </div>
       </div>
+      <div class="today-strip">
+        <span>今日支出</span>
+        <strong id="todayExpense">NT$ 0</strong>
+      </div>
     </section>
 
     <section class="quick-card soft-card page page-home active" id="pageHome">
@@ -115,12 +119,17 @@
         </div>
         <button class="small-btn" id="openCategoryPanel2">管理</button>
       </div>
-      <div class="setting-row">
+      <div class="setting-row stack">
         <div>
-          <strong>資料匯出</strong>
-          <p>下載 CSV 備份你的記帳資料。</p>
+          <strong>資料備份 / 匯入</strong>
+          <p>單機版資料存在手機裡，請定期匯出 JSON 備份；換手機時可匯入還原。</p>
         </div>
-        <button class="small-btn" id="exportBtn">匯出</button>
+        <div class="button-row">
+          <button class="small-btn" id="exportBackupBtn">匯出備份</button>
+          <button class="small-btn ghost" id="importBackupBtn">匯入</button>
+          <button class="small-btn ghost" id="exportBtn">CSV</button>
+        </div>
+        <input type="file" id="importFileInput" accept="application/json,.json,text/csv,.csv" hidden />
       </div>
     </section>
   </main>
@@ -169,6 +178,28 @@
       <div class="modal-actions">
         <button class="ghost-btn" id="cancelCategoryBudgetBtn">取消</button>
         <button class="primary-btn inline" id="saveCategoryBudgetBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="editRecordModal">
+    <div class="modal-card large">
+      <h2>編輯紀錄</h2>
+      <div class="segmented mini">
+        <button class="active" id="editExpenseBtn" data-edit-type="expense">支出</button>
+        <button id="editIncomeBtn" data-edit-type="income">收入</button>
+      </div>
+      <label class="field-label" for="editDateInput">日期</label>
+      <input id="editDateInput" class="note-input" type="date" />
+      <label class="field-label" for="editAmountInput">金額</label>
+      <input id="editAmountInput" class="note-input" type="number" inputmode="decimal" min="0" />
+      <label class="field-label" for="editCategoryInput">分類</label>
+      <select id="editCategoryInput" class="note-input"></select>
+      <label class="field-label" for="editNoteInput">備註</label>
+      <input id="editNoteInput" class="note-input" placeholder="可留空" />
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelEditBtn">取消</button>
+        <button class="primary-btn inline" id="saveEditBtn">儲存</button>
       </div>
     </div>
   </div>
