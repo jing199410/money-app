@@ -77,3 +77,47 @@ h2{font-size:22px;letter-spacing:-.02em}.date-input{font-size:15px}.segmented bu
     font-size:14px;
   }
 }
+
+/* V4.6：查詢頁日期區間重新設計 */
+.date-range-box{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin:12px 0 4px;
+}
+.date-line{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  border:1px solid var(--line);
+  background:var(--card);
+  border-radius:18px;
+  padding:12px 14px;
+}
+.date-line span{
+  flex:0 0 76px;
+  color:var(--muted);
+  font-size:14px;
+  font-weight:850;
+}
+.date-line input[type="date"]{
+  flex:1;
+  min-width:0;
+  border:0;
+  outline:none;
+  background:transparent;
+  color:var(--text);
+  font-size:15px;
+  font-weight:850;
+  text-align:right;
+  -webkit-appearance:none;
+  appearance:none;
+}
+body.dark .date-line{background:#332f30}
+@media(max-width:380px){
+  .date-line{padding:11px 12px;border-radius:16px}
+  .date-line span{flex-basis:70px;font-size:13px}
+  .date-line input[type="date"]{font-size:14px}
+}
