@@ -26,3 +26,4 @@ h1,h2,h3,strong{color:var(--text-strong)}h2{font-size:25px;margin:0 0 18px}.date
 
 select.note-input{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%),linear-gradient(135deg, var(--muted) 50%, transparent 50%);background-position:calc(100% - 18px) 50%, calc(100% - 12px) 50%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:38px}
 .balance-card h2,.amount-field input{color:var(--text-strong)}
+.data-status{margin:4px 0 2px;color:var(--muted);font-size:13px;line-height:1.6}.data-status strong{color:var(--primary-dark)}

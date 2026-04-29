@@ -3,12 +3,14 @@ const CATEGORY_KEY = 'moneyDiary.categories.v3';
 const BUDGET_KEY = 'moneyDiary.budget.v3';
 const CATEGORY_BUDGET_KEY = 'moneyDiary.categoryBudgets.v35';
 const THEME_KEY = 'moneyDiary.theme.v3';
+const SAFETY_SNAPSHOT_KEY = 'moneyDiary.safetySnapshot.v41';
 
 const defaultCategories = {
   expense: ['餐飲', '交通', '生活', '娛樂', '購物', '醫療'],
   income: ['薪資', '獎金', '副業', '退款', '其他收入']
 };
 
+migrateLegacyData();
 let records = load(STORE_KEY, []);
 let categories = load(CATEGORY_KEY, defaultCategories);
 let categoryBudgets = load(CATEGORY_BUDGET_KEY, {});
@@ -27,6 +29,40 @@ function load(key, fallback){
   catch { return fallback; }
 }
 function save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+function migrateLegacyData(){
+  if(localStorage.getItem(STORE_KEY)) return;
+  const legacyKeys = ['money_diary_records_v2','moneyDiary.records.v2','moneyDiary.records.v1','records'];
+  for(const key of legacyKeys){
+    const raw = localStorage.getItem(key);
+    if(!raw) continue;
+    try{
+      const data = JSON.parse(raw);
+      if(Array.isArray(data) && data.length){
+        localStorage.setItem(STORE_KEY, JSON.stringify(data));
+        return;
+      }
+    }catch{}
+  }
+}
+function buildBackupPayload(){
+  return {
+    app: 'money-diary',
+    version: '4.1',
+    exportedAt: new Date().toISOString(),
+    recordCount: records.length,
+    records,
+    categories,
+    categoryBudgets,
+    monthlyBudget: localStorage.getItem(BUDGET_KEY) || '0',
+    theme: localStorage.getItem(THEME_KEY) || 'light'
+  };
+}
+function createSafetySnapshot(reason='manual'){
+  const payload = buildBackupPayload();
+  payload.reason = reason;
+  payload.snapshotAt = new Date().toISOString();
+  localStorage.setItem(SAFETY_SNAPSHOT_KEY, JSON.stringify(payload));
+}
 function parseLocalDate(iso){
   const [y,m,d] = iso.split('-').map(Number);
   return new Date(y, m-1, d);
@@ -76,6 +112,7 @@ function bindEvents(){
   $('clearAllBtn').onclick = clearAll;
   $('exportBtn').onclick = exportCSV;
   $('exportBackupBtn').onclick = exportBackup;
+  $('restoreSnapshotBtn').onclick = restoreSafetySnapshot;
   $('importBackupBtn').onclick = () => $('importFileInput').click();
   $('importFileInput').onchange = importBackupFile;
   $('cancelEditBtn').onclick = closeEditRecordModal;
@@ -157,6 +194,7 @@ function renderAll(){
   renderCategoryBudgets();
   renderChart();
   renderManageList();
+  renderDataSafetyStatus();
 }
 
 function renderSummary(){
@@ -168,6 +206,13 @@ function renderSummary(){
   $('monthExpense').textContent = fmt(expense);
   const todayExpense = records.filter(r => r.type === 'expense' && r.date === todayISO()).reduce((sum,r)=>sum+r.amount,0);
   if($('todayExpense')) $('todayExpense').textContent = fmt(todayExpense);
+}
+
+function renderDataSafetyStatus(){
+  if(!$('dataSafetyStatus')) return;
+  const snapshot = load(SAFETY_SNAPSHOT_KEY, null);
+  const last = snapshot?.snapshotAt ? new Date(snapshot.snapshotAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '尚無';
+  $('dataSafetyStatus').innerHTML = `目前共有 <strong>${records.length}</strong> 筆紀錄｜上次安全快照：${last}`;
 }
 
 function renderCategories(){
@@ -392,11 +437,12 @@ function saveCategoryBudgets(){
 
 function clearAll(){
   if(!records.length) return;
-  if(confirm('確定清空所有記帳資料？這個動作無法復原。')){
+  if(confirm('確定清空所有記帳資料？系統會先保留一份安全快照。')){
+    createSafetySnapshot('clear-before');
     records = []; save(STORE_KEY, records); renderAll();
   }
 }
-function deleteRecord(id){ records = records.filter(r => r.id !== id); save(STORE_KEY, records); renderAll(); }
+function deleteRecord(id){ createSafetySnapshot('delete-before'); records = records.filter(r => r.id !== id); save(STORE_KEY, records); renderAll(); showToast('已刪除，可用安全快照還原'); }
 
 function openEditRecordModal(id){
   const record = records.find(r => r.id === id);
@@ -440,6 +486,7 @@ function saveEditedRecord(){
   if(!amount || amount <= 0){ showToast('請輸入金額'); return; }
   if(!category){ showToast('請選擇分類'); return; }
 
+  createSafetySnapshot('edit-before');
   records = records.map(r => r.id === editingRecordId
     ? {...r, date, type: editingType, amount, category, note, updatedAt: new Date().toISOString()}
     : r
@@ -461,16 +508,7 @@ function exportCSV(){
 }
 
 function exportBackup(){
-  const payload = {
-    app: 'money-diary',
-    version: '4.0',
-    exportedAt: new Date().toISOString(),
-    records,
-    categories,
-    categoryBudgets,
-    monthlyBudget: localStorage.getItem(BUDGET_KEY) || '0',
-    theme: localStorage.getItem(THEME_KEY) || 'light'
-  };
+  const payload = buildBackupPayload();
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -478,7 +516,7 @@ function exportBackup(){
   a.download = `money-diary-backup-${todayISO()}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('已匯出備份');
+  showToast(`已匯出 ${records.length} 筆備份`);
 }
 
 function importBackupFile(event){
@@ -488,6 +526,7 @@ function importBackupFile(event){
   reader.onload = () => {
     try{
       const text = String(reader.result || '');
+      createSafetySnapshot('import-before');
       if(file.name.toLowerCase().endsWith('.csv')){
         importCSV(text);
       }else{
@@ -508,7 +547,8 @@ function importJSON(text){
   const data = JSON.parse(text);
   if(!Array.isArray(data.records)) throw new Error('missing records');
   categories = normalizeCategories(data.categories || categories);
-  records = data.records.map(normalizeRecord).filter(Boolean);
+  const importedRecords = data.records.map(normalizeRecord).filter(Boolean);
+  records = mergeById(records, importedRecords);
   categoryBudgets = data.categoryBudgets && typeof data.categoryBudgets === 'object' ? data.categoryBudgets : {};
   save(STORE_KEY, records);
   save(CATEGORY_KEY, categories);
@@ -531,9 +571,32 @@ function importCSV(text){
     note: row[idx('備註')],
     createdAt: row[idx('建立時間')]
   })).filter(Boolean);
-  records = next;
+  records = mergeById(records, next);
   save(STORE_KEY, records);
   save(CATEGORY_KEY, categories);
+}
+
+function mergeById(existing, imported){
+  const map = new Map();
+  [...existing, ...imported].forEach(item => {
+    if(item?.id) map.set(item.id, item);
+  });
+  return [...map.values()].sort((a,b)=> b.date.localeCompare(a.date) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
+
+function restoreSafetySnapshot(){
+  const snapshot = load(SAFETY_SNAPSHOT_KEY, null);
+  if(!snapshot || !Array.isArray(snapshot.records)){ showToast('目前沒有可還原的安全快照'); return; }
+  if(!confirm('確定還原到上次匯入 / 編輯 / 刪除前的資料？')) return;
+  records = snapshot.records.map(normalizeRecord).filter(Boolean);
+  categories = normalizeCategories(snapshot.categories || categories);
+  categoryBudgets = snapshot.categoryBudgets && typeof snapshot.categoryBudgets === 'object' ? snapshot.categoryBudgets : {};
+  save(STORE_KEY, records);
+  save(CATEGORY_KEY, categories);
+  save(CATEGORY_BUDGET_KEY, categoryBudgets);
+  if(snapshot.monthlyBudget !== undefined) localStorage.setItem(BUDGET_KEY, String(snapshot.monthlyBudget || 0));
+  renderAll();
+  showToast('已還原安全快照');
 }
 
 function normalizeRecord(r){

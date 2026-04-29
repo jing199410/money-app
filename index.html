@@ -124,10 +124,12 @@
           <strong>資料備份 / 匯入</strong>
           <p>單機版資料存在手機裡，請定期匯出 JSON 備份；換手機時可匯入還原。</p>
         </div>
+        <p class="data-status" id="dataSafetyStatus">目前共有 0 筆紀錄｜上次安全快照：尚無</p>
         <div class="button-row">
-          <button class="small-btn" id="exportBackupBtn">匯出備份</button>
-          <button class="small-btn ghost" id="importBackupBtn">匯入</button>
-          <button class="small-btn ghost" id="exportBtn">CSV</button>
+          <button class="small-btn" id="exportBackupBtn">匯出 JSON 備份</button>
+          <button class="small-btn ghost" id="importBackupBtn">匯入 JSON / CSV</button>
+          <button class="small-btn ghost" id="restoreSnapshotBtn">還原安全快照</button>
+          <button class="small-btn ghost" id="exportBtn">匯出 CSV</button>
         </div>
         <input type="file" id="importFileInput" accept="application/json,.json,text/csv,.csv" hidden />
       </div>
