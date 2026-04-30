@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="輕帳" />
-  <link rel="manifest" href="manifest.json?v=5-month-switch" />
+  <link rel="manifest" href="manifest.json?v=4.9-settings-ui" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=5-month-switch" />
+  <link rel="stylesheet" href="style.css?v=4.9-settings-ui" />
   <title>輕帳</title>
 </head>
 <body>
@@ -28,7 +28,7 @@
           <p class="muted">本月結餘</p>
           <h2 id="monthBalance">NT$ 0</h2>
         </div>
-        <div class="month-switch" aria-label="月份切換"><button id="prevMonthBtn" type="button" aria-label="上一個月">‹</button><span class="month-pill" id="monthLabel">本月</span><button id="nextMonthBtn" type="button" aria-label="下一個月">›</button></div>
+        <span class="month-pill" id="monthLabel">本月</span>
       </div>
       <div class="summary-grid">
         <div class="summary-box income-box">
@@ -87,7 +87,7 @@
     <section class="soft-card page" id="pageStats">
       <div class="section-head">
         <h2>統計</h2>
-        <div class="month-switch compact-switch" aria-label="統計月份切換"><button id="statsPrevMonthBtn" type="button" aria-label="上一個月">‹</button><span class="month-pill" id="statsMonthLabel">本月</span><button id="statsNextMonthBtn" type="button" aria-label="下一個月">›</button></div>
+        <span class="month-pill" id="statsMonthLabel">本月</span>
       </div>
       <div class="budget-card">
         <div class="budget-top">
@@ -263,7 +263,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=5-month-switch"></script>
-<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js?v=5-month-switch")); }</script>
+  <script src="app.js?v=4.5"></script>
+<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js?v=4.5")); }</script>
 </body>
 </html>
