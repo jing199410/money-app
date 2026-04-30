@@ -1,7 +1,7 @@
 {
   "name": "輕帳 Money Diary",
   "short_name": "輕帳",
-  "start_url": "./?v=4.5",
+  "start_url": "./?v=5-month-switch",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f8f2f1",
@@ -22,5 +22,5 @@
     }
   ],
   "description": "粉色貓咪記帳 PWA",
-  "version": "4.5"
+  "version": "5.0"
 }

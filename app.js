@@ -20,6 +20,7 @@ let selectedCategory = categories.expense[0];
 let manageType = 'expense';
 let editingRecordId = null;
 let editingType = 'expense';
+let selectedMonthDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => `NT$ ${Number(n || 0).toLocaleString('zh-TW')}`;
@@ -100,7 +101,13 @@ function parseLocalDate(iso){
 function monthKey(date = new Date()){
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
 }
-function isThisMonth(iso){ return iso && iso.slice(0,7) === monthKey(); }
+function selectedMonthKey(){ return monthKey(selectedMonthDate); }
+function isSelectedMonth(iso){ return iso && iso.slice(0,7) === selectedMonthKey(); }
+function monthLabelText(){ return `${selectedMonthDate.getFullYear()}年${selectedMonthDate.getMonth()+1}月`; }
+function changeSelectedMonth(delta){
+  selectedMonthDate = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + delta, 1);
+  renderAll();
+}
 function ymdText(iso){
   const d = parseLocalDate(iso);
   return `${d.getMonth()+1}/${d.getDate()}`;
@@ -117,16 +124,24 @@ function dateGroupText(iso){
 
 function init(){
   $('recordDate').value = todayISO();
-  const now = new Date();
-  $('monthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
-  $('statsMonthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
+  updateMonthLabels();
   bindEvents();
   applyTheme();
   renderAll();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
+function updateMonthLabels(){
+  const label = monthLabelText();
+  if($('monthLabel')) $('monthLabel').textContent = label;
+  if($('statsMonthLabel')) $('statsMonthLabel').textContent = label;
+}
+
 function bindEvents(){
+  if($('prevMonthBtn')) $('prevMonthBtn').onclick = () => changeSelectedMonth(-1);
+  if($('nextMonthBtn')) $('nextMonthBtn').onclick = () => changeSelectedMonth(1);
+  if($('statsPrevMonthBtn')) $('statsPrevMonthBtn').onclick = () => changeSelectedMonth(-1);
+  if($('statsNextMonthBtn')) $('statsNextMonthBtn').onclick = () => changeSelectedMonth(1);
   $('expenseTab').onclick = () => switchType('expense');
   $('incomeTab').onclick = () => switchType('income');
   $('saveBtn').onclick = addRecord;
@@ -232,7 +247,8 @@ function renderAll(){
 }
 
 function renderSummary(){
-  const monthRecords = records.filter(r => isThisMonth(r.date));
+  updateMonthLabels();
+  const monthRecords = records.filter(r => isSelectedMonth(r.date));
   const income = monthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
   const expense = monthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
   animateMoney($('monthBalance'), income - expense);
@@ -326,7 +342,7 @@ function renderBudget(){
   const categoryTotal = getCategoryBudgetTotal();
   const manualBudget = Number(localStorage.getItem(BUDGET_KEY) || 0);
   const budget = getMonthlyBudget();
-  const expense = records.filter(r => r.type === 'expense' && isThisMonth(r.date)).reduce((s,r)=>s+r.amount,0);
+  const expense = records.filter(r => r.type === 'expense' && isSelectedMonth(r.date)).reduce((s,r)=>s+r.amount,0);
 
   $('budgetAmountText').textContent = budget ? fmt(budget) : '尚未設定';
 
@@ -350,7 +366,7 @@ function renderBudget(){
 
 function getMonthlyCategoryExpense(){
   const data = {};
-  records.filter(r=>r.type==='expense' && isThisMonth(r.date)).forEach(r => {
+  records.filter(r=>r.type==='expense' && isSelectedMonth(r.date)).forEach(r => {
     data[r.category] = (data[r.category] || 0) + r.amount;
   });
   return data;

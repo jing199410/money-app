@@ -285,3 +285,50 @@ body.dark .backup-secondary{
   .backup-secondary-row{grid-template-columns:1fr;}
   .backup-primary{min-height:52px;}
 }
+
+/* V5：月份切換 UI */
+.month-switch{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:4px;
+  border-radius:999px;
+  background:rgba(239,204,204,.55);
+  border:1px solid rgba(232,166,161,.22);
+  white-space:nowrap;
+}
+.month-switch .month-pill{
+  background:transparent;
+  padding:6px 8px;
+  min-width:92px;
+  text-align:center;
+}
+.month-switch button{
+  width:32px;
+  height:32px;
+  border:0;
+  border-radius:999px;
+  background:rgba(255,255,255,.72);
+  color:#9e5f5b;
+  font-size:22px;
+  line-height:1;
+  font-weight:850;
+  display:grid;
+  place-items:center;
+  box-shadow:0 8px 18px rgba(116,72,70,.08);
+  -webkit-tap-highlight-color:transparent;
+}
+.month-switch button:active{
+  transform:scale(.94);
+}
+.compact-switch{
+  transform:scale(.96);
+  transform-origin:right center;
+}
+body.dark .month-switch{background:rgba(80,62,64,.62)}
+body.dark .month-switch button{background:rgba(51,47,48,.95);color:#d7a4a8}
+@media(max-width:380px){
+  .month-switch{gap:4px}
+  .month-switch .month-pill{min-width:82px;font-size:13px;padding:6px 4px}
+  .month-switch button{width:29px;height:29px;font-size:20px}
+}
