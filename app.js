@@ -2,6 +2,7 @@ const STORE_KEY = 'moneyDiary.records.v3';
 const CATEGORY_KEY = 'moneyDiary.categories.v3';
 const BUDGET_KEY = 'moneyDiary.budget.v3';
 const CATEGORY_BUDGET_KEY = 'moneyDiary.categoryBudgets.v35';
+const MONTHLY_BUDGETS_KEY = 'app-monthly-budgets';
 const THEME_KEY = 'moneyDiary.theme.v3';
 const THEME_COLOR_KEY = 'moneyDiary.themeColor.v5';
 const SAFETY_SNAPSHOT_KEY = 'moneyDiary.safetySnapshot.v41';
@@ -16,6 +17,7 @@ migrateLegacyData();
 let records = load(STORE_KEY, []);
 let categories = load(CATEGORY_KEY, defaultCategories);
 let categoryBudgets = load(CATEGORY_BUDGET_KEY, {});
+let monthlyBudgets = load(MONTHLY_BUDGETS_KEY, {});
 let currentType = 'expense';
 let selectedCategory = categories.expense[0];
 let manageType = 'expense';
@@ -78,13 +80,14 @@ function migrateLegacyData(){
 function buildBackupPayload(){
   return {
     app: 'money-diary',
-    version: '4.3',
+    version: '5.1-month-budget',
     exportedAt: new Date().toISOString(),
     recordCount: records.length,
     records,
     categories,
     categoryBudgets,
-    monthlyBudget: localStorage.getItem(BUDGET_KEY) || '0',
+    monthlyBudgets,
+    monthlyBudget: localStorage.getItem(BUDGET_KEY) || '0', // 保留舊版相容
     theme: localStorage.getItem(THEME_KEY) || 'light',
     themeColor: localStorage.getItem(THEME_COLOR_KEY) || 'berry'
   };
@@ -117,11 +120,24 @@ function dateGroupText(iso){
   return `${target.getMonth()+1}/${target.getDate()}（${'日一二三四五六'[target.getDay()]}）`;
 }
 
+function migrateLegacyMonthlyBudget(){
+  if(monthlyBudgets && Object.keys(monthlyBudgets).length) return;
+  const legacyBudget = Number(localStorage.getItem(BUDGET_KEY) || 0);
+  if(legacyBudget > 0){
+    monthlyBudgets[monthKey()] = legacyBudget;
+    save(MONTHLY_BUDGETS_KEY, monthlyBudgets);
+  }
+}
+
 function init(){
   $('recordDate').value = todayISO();
   const now = new Date();
   $('monthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
   $('statsMonthLabel').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
+  if($('budgetHomeMonth')) $('budgetHomeMonth').textContent = `${now.getFullYear()}年${now.getMonth()+1}月`;
+  migrateLegacyMonthlyBudget();
+  if($('budgetMonthInput')) $('budgetMonthInput').value = monthKey();
+  loadMonthlyBudgetForm();
   bindEvents();
   applyTheme();
   renderAll();
@@ -153,14 +169,8 @@ function bindEvents(){
   $('editExpenseBtn').onclick = () => switchEditType('expense');
   $('editIncomeBtn').onclick = () => switchEditType('income');
   $('editRecordModal').onclick = (e) => { if(e.target.id === 'editRecordModal') closeEditRecordModal(); };
-  $('editBudgetBtn').onclick = openBudgetModal;
-  $('cancelBudgetBtn').onclick = closeBudgetModal;
-  $('saveBudgetBtn').onclick = saveBudget;
-  $('budgetModal').onclick = (e) => { if(e.target.id === 'budgetModal') closeBudgetModal(); };
-  $('editCategoryBudgetBtn').onclick = openCategoryBudgetModal;
-  $('cancelCategoryBudgetBtn').onclick = closeCategoryBudgetModal;
-  $('saveCategoryBudgetBtn').onclick = saveCategoryBudgets;
-  $('categoryBudgetModal').onclick = (e) => { if(e.target.id === 'categoryBudgetModal') closeCategoryBudgetModal(); };
+  if($('budgetMonthInput')) $('budgetMonthInput').addEventListener('change', loadMonthlyBudgetForm);
+  if($('saveMonthlyBudgetBtn')) $('saveMonthlyBudgetBtn').onclick = saveMonthlyBudgetSetting;
   bindSearchEvents();
 
   document.querySelectorAll('.bottom-nav button').forEach(btn => {
@@ -180,6 +190,7 @@ function switchPage(page){
   document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   $('pageHome').classList.toggle('active', page === 'home');
   $('recordsBlock').classList.toggle('active', page === 'home');
+  if($('monthBudgetCard')) $('monthBudgetCard').classList.toggle('active', page === 'home');
   $('pageStats').classList.toggle('active', page === 'stats');
   if($('pageSearch')) $('pageSearch').classList.toggle('active', page === 'search');
   $('pageSettings').classList.toggle('active', page === 'settings');
@@ -225,8 +236,7 @@ function renderAll(){
   renderSummary();
   renderCategories();
   renderRecords();
-  renderBudget();
-  renderCategoryBudgets();
+  renderMonthlyBudget();
   renderChart();
   renderManageList();
   renderDataSafetyStatus();
@@ -314,188 +324,88 @@ function renderRecords(){
   });
 }
 
-function getCategoryBudgetTotal(){
-  return Object.values(categoryBudgets || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+
+function getMonthExpense(targetMonth = monthKey()){
+  return records
+    .filter(r => r.type === 'expense' && r.date && r.date.slice(0,7) === targetMonth)
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 }
 
-function getMonthlyBudget(){
-  // 分類預算有設定時，總預算自動等於所有分類預算加總；沒有分類預算時才使用手動本月預算。
-  const categoryTotal = getCategoryBudgetTotal();
-  if(categoryTotal > 0) return categoryTotal;
-  return Number(localStorage.getItem(BUDGET_KEY) || 0);
+function getMonthlyBudgetAmount(targetMonth = monthKey()){
+  return Number((monthlyBudgets && monthlyBudgets[targetMonth]) || 0);
 }
 
-function renderBudget(){
-  const categoryTotal = getCategoryBudgetTotal();
-  const manualBudget = Number(localStorage.getItem(BUDGET_KEY) || 0);
-  const budget = getMonthlyBudget();
-  const expense = records.filter(r => r.type === 'expense' && isThisMonth(r.date)).reduce((s,r)=>s+r.amount,0);
+function getBudgetCareMessage(budget, expense){
+  if(!budget || budget <= 0) return '尚未設定本月預算，可以到設定頁新增。';
+  const percent = Math.round((expense / budget) * 100);
+  if(percent < 60) return '目前花費很穩定，這個月還有餘裕。';
+  if(percent < 80) return '已使用一半以上，接下來可以稍微留意。';
+  if(percent < 100) return '快接近本月預算了，建議放慢一點點。';
+  return '本月已超出預算，先照顧必要支出就好。';
+}
 
-  $('budgetAmountText').textContent = budget ? fmt(budget) : '尚未設定';
-
-  $('budgetProgress').classList.remove('over');
-  if(!budget){
-    $('budgetProgress').style.width = '0%';
-    $('budgetNote').textContent = '設定分類預算後，本月總預算會自動加總。';
-    return;
-  }
-
-  const rawPercent = Math.round((expense / budget) * 100);
-  const percent = Math.min(100, rawPercent);
-  $('budgetProgress').style.width = percent + '%';
+function renderMonthlyBudget(){
+  const targetMonth = monthKey();
+  const budget = getMonthlyBudgetAmount(targetMonth);
+  const expense = getMonthExpense(targetMonth);
   const left = budget - expense;
-  if(left < 0) $('budgetProgress').classList.add('over');
-  const sourceText = categoryTotal > 0 ? `分類預算自動加總 ${fmt(categoryTotal)}` : `手動預算 ${fmt(manualBudget)}`;
-  $('budgetNote').textContent = left >= 0
-    ? `${sourceText}｜已使用 ${rawPercent}% ，剩餘 ${fmt(left)}`
-    : `${sourceText}｜已使用 ${rawPercent}% ，已超支 ${fmt(Math.abs(left))}`;
-}
+  const progress = $('budgetHomeProgress');
+  const note = $('budgetHomeNote');
 
-function getMonthlyCategoryExpense(){
-  const data = {};
-  records.filter(r=>r.type==='expense' && isThisMonth(r.date)).forEach(r => {
-    data[r.category] = (data[r.category] || 0) + r.amount;
-  });
-  return data;
-}
+  if($('budgetHomeAmount')) $('budgetHomeAmount').textContent = budget > 0 ? fmt(budget) : '尚未設定';
+  if($('budgetHomeExpense')) $('budgetHomeExpense').textContent = fmt(expense);
+  if($('budgetHomeLeft')) $('budgetHomeLeft').textContent = budget > 0 ? fmt(left) : '尚未設定';
 
-function renderCategoryBudgets(){
-  const box = $('categoryBudgetList');
-  if(!box) return;
-  const expenses = getMonthlyCategoryExpense();
-  const expenseCategories = categories.expense || [];
-  const rows = expenseCategories
-    .filter(cat => Number(categoryBudgets[cat] || 0) > 0 || Number(expenses[cat] || 0) > 0)
-    .map(cat => ({ cat, budget: Number(categoryBudgets[cat] || 0), used: Number(expenses[cat] || 0) }));
-  if(!rows.length){
-    box.innerHTML = '<p class="empty">尚未設定分類預算。可先設定餐飲、交通等個別預算。</p>';
-    return;
+  if(progress){
+    progress.classList.remove('over');
+    if(budget > 0){
+      const percent = Math.min(100, Math.round((expense / budget) * 100));
+      progress.style.width = percent + '%';
+      progress.classList.toggle('over', expense > budget);
+    }else{
+      progress.style.width = '0%';
+    }
   }
-  box.innerHTML = '';
-  rows.forEach(({cat, budget, used}) => {
-    const percent = budget ? Math.min(100, Math.round(used / budget * 100)) : 0;
-    const left = budget - used;
-    const row = document.createElement('div');
-    row.className = 'category-budget-row' + (budget && used > budget ? ' over' : '');
-    row.innerHTML = `
-      <div class="category-budget-top">
-        <strong>${escapeHTML(cat)}</strong>
-        <span>${budget ? `已用 ${fmt(used)} / 預算 ${fmt(budget)}` : `已用 ${fmt(used)} / 預算未設定`}</span>
-      </div>
-      <div class="mini-progress"><div style="width:${budget ? percent : 0}%"></div></div>
-      <p>${budget ? (left >= 0 ? `剩餘 ${fmt(left)}` : `已超支 ${fmt(Math.abs(left))}`) : '尚未設定此分類預算'}</p>`;
-    box.appendChild(row);
-  });
+  if(note) note.textContent = getBudgetCareMessage(budget, expense);
+
+  if($('monthlyBudgetStatus')){
+    $('monthlyBudgetStatus').textContent = budget > 0
+      ? `${targetMonth} 預算 ${fmt(budget)}｜已支出 ${fmt(expense)}｜${left >= 0 ? '剩餘 ' + fmt(left) : '已超支 ' + fmt(Math.abs(left))}`
+      : `${targetMonth} 尚未設定預算。`;
+  }
 }
 
-function renderChart(){
-  const box = $('chartList');
-  const data = getMonthlyCategoryExpense();
-  const rows = Object.entries(data).sort((a,b)=>b[1]-a[1]);
-  if(!rows.length){ box.innerHTML = '<div class="empty-cat small"><img src="icons/icon-192.png" alt=""><p>本月還沒有支出資料。</p></div>'; return; }
-  const max = rows[0][1];
-  box.innerHTML = '';
-  rows.forEach(([cat, amount]) => {
-    const row = document.createElement('div');
-    row.className = 'chart-row';
-    row.innerHTML = `<strong>${escapeHTML(cat)}</strong><div class="bar-track"><div class="bar" style="width:${Math.max(8, amount/max*100)}%"></div></div><span>${fmt(amount)}</span>`;
-    box.appendChild(row);
-  });
+function loadMonthlyBudgetForm(){
+  const monthInput = $('budgetMonthInput');
+  const amountInput = $('monthlyBudgetInput');
+  if(!monthInput || !amountInput) return;
+  const targetMonth = monthInput.value || monthKey();
+  monthInput.value = targetMonth;
+  const value = getMonthlyBudgetAmount(targetMonth);
+  amountInput.value = value > 0 ? String(value) : '';
+  const status = $('monthlyBudgetStatus');
+  if(status){
+    const expense = getMonthExpense(targetMonth);
+    status.textContent = value > 0
+      ? `${targetMonth} 預算 ${fmt(value)}｜已支出 ${fmt(expense)}｜剩餘 ${fmt(value - expense)}`
+      : `${targetMonth} 尚未設定預算。`;
+  }
 }
 
-function openCategoryPanel(){ $('sheetMask').classList.add('show'); $('categoryPanel').classList.add('show'); $('categoryPanel').setAttribute('aria-hidden','false'); renderManageList(); }
-function closeCategoryPanel(){ $('sheetMask').classList.remove('show'); $('categoryPanel').classList.remove('show'); $('categoryPanel').setAttribute('aria-hidden','true'); }
-function switchManageType(type){
-  manageType = type;
-  $('manageExpenseBtn').classList.toggle('active', type === 'expense');
-  $('manageIncomeBtn').classList.toggle('active', type === 'income');
-  renderManageList();
-}
-function addCategory(){
-  const name = $('newCategoryInput').value.trim();
-  if(!name) return;
-  if(categories[manageType].includes(name)){ showToast('分類已存在'); return; }
-  categories[manageType].push(name);
-  save(CATEGORY_KEY, categories);
-  $('newCategoryInput').value = '';
-  if(currentType === manageType && !selectedCategory) selectedCategory = name;
-  renderAll();
-}
-function renderManageList(){
-  const list = $('manageCategoryList');
-  if(!list) return;
-  list.innerHTML = '';
-  categories[manageType].forEach(cat => {
-    const item = document.createElement('div');
-    item.className = 'manage-item';
-    item.innerHTML = `<span>${escapeHTML(cat)}</span><div class="manage-actions"><button class="rename-cat" data-cat="${escapeAttr(cat)}">改名</button><button class="delete-cat" data-cat="${escapeAttr(cat)}">刪除</button></div>`;
-    list.appendChild(item);
-  });
-  list.querySelectorAll('.rename-cat').forEach(btn => btn.onclick = () => renameCategory(btn.dataset.cat));
-  list.querySelectorAll('.delete-cat').forEach(btn => btn.onclick = () => removeCategory(btn.dataset.cat));
-}
-function renameCategory(cat){
-  const name = prompt('請輸入新的分類名稱', cat);
-  if(name === null) return;
-  const nextName = name.trim();
-  if(!nextName){ showToast('分類名稱不可空白'); return; }
-  if(nextName === cat) return;
-  if(categories[manageType].includes(nextName)){ showToast('分類已存在'); return; }
-  createSafetySnapshot('rename-category-before');
-  categories[manageType] = categories[manageType].map(c => c === cat ? nextName : c);
-  records = records.map(r => r.type === manageType && r.category === cat ? {...r, category: nextName, updatedAt: new Date().toISOString()} : r);
-  if(manageType === 'expense' && categoryBudgets[cat] !== undefined){ categoryBudgets[nextName] = categoryBudgets[cat]; delete categoryBudgets[cat]; }
-  if(currentType === manageType && selectedCategory === cat) selectedCategory = nextName;
-  save(STORE_KEY, records); save(CATEGORY_KEY, categories); save(CATEGORY_BUDGET_KEY, categoryBudgets);
-  renderAll(); showToast('分類已改名');
-}
-function removeCategory(cat){
-  if(categories[manageType].length <= 1){ showToast('至少保留一個分類'); return; }
-  if(!confirm('確定刪除此分類？舊紀錄會保留原分類名稱，不會消失。')) return;
-  createSafetySnapshot('delete-category-before');
-  categories[manageType] = categories[manageType].filter(c => c !== cat);
-  if(manageType === 'expense') delete categoryBudgets[cat];
-  if(currentType === manageType && selectedCategory === cat) selectedCategory = categories[manageType][0];
-  save(CATEGORY_KEY, categories);
-  save(CATEGORY_BUDGET_KEY, categoryBudgets);
-  renderAll();
-}
-
-function openBudgetModal(){ $('budgetInput').value = localStorage.getItem(BUDGET_KEY) || ''; $('budgetModal').classList.add('show'); }
-function closeBudgetModal(){ $('budgetModal').classList.remove('show'); }
-function saveBudget(){
-  const value = Number($('budgetInput').value || 0);
+function saveMonthlyBudgetSetting(){
+  const monthInput = $('budgetMonthInput');
+  const amountInput = $('monthlyBudgetInput');
+  if(!monthInput || !amountInput) return;
+  const targetMonth = monthInput.value || monthKey();
+  const value = Number(amountInput.value || 0);
   if(value < 0){ showToast('預算不可小於 0'); return; }
-  localStorage.setItem(BUDGET_KEY, String(value));
-  closeBudgetModal();
-  renderBudget();
-  showToast('已儲存預算');
-}
-
-function openCategoryBudgetModal(){
-  const editor = $('categoryBudgetEditor');
-  editor.innerHTML = '';
-  (categories.expense || []).forEach(cat => {
-    const row = document.createElement('label');
-    row.className = 'category-budget-input-row';
-    row.innerHTML = `<span>${escapeHTML(cat)}</span><input type="number" inputmode="decimal" min="0" data-cat="${escapeAttr(cat)}" value="${Number(categoryBudgets[cat] || 0) || ''}" placeholder="0" />`;
-    editor.appendChild(row);
-  });
-  $('categoryBudgetModal').classList.add('show');
-}
-function closeCategoryBudgetModal(){ $('categoryBudgetModal').classList.remove('show'); }
-function saveCategoryBudgets(){
-  const next = {};
-  document.querySelectorAll('#categoryBudgetEditor input').forEach(input => {
-    const value = Number(input.value || 0);
-    if(value > 0) next[input.dataset.cat] = value;
-  });
-  categoryBudgets = next;
-  save(CATEGORY_BUDGET_KEY, categoryBudgets);
-  localStorage.setItem(BUDGET_KEY, String(getCategoryBudgetTotal()));
-  closeCategoryBudgetModal();
-  renderAll();
-  showToast('已更新總預算');
+  if(value > 0) monthlyBudgets[targetMonth] = value;
+  else delete monthlyBudgets[targetMonth];
+  save(MONTHLY_BUDGETS_KEY, monthlyBudgets);
+  localStorage.setItem(BUDGET_KEY, String(getMonthlyBudgetAmount(monthKey()))); // 舊版相容
+  loadMonthlyBudgetForm();
+  renderMonthlyBudget();
+  showToast('本月預算已更新');
 }
 
 function clearAll(){
@@ -624,9 +534,15 @@ function importJSON(text){
   categories = normalizeCategories(data.categories || categories);
   records = mergeById(records, data.records);
   categoryBudgets = data.categoryBudgets && typeof data.categoryBudgets === 'object' ? data.categoryBudgets : {};
+  monthlyBudgets = data.monthlyBudgets && typeof data.monthlyBudgets === 'object' ? data.monthlyBudgets : monthlyBudgets;
+  if(data.monthlyBudgets === undefined && data.monthlyBudget !== undefined){
+    const legacyBudget = Number(data.monthlyBudget || 0);
+    if(legacyBudget > 0) monthlyBudgets[monthKey()] = legacyBudget;
+  }
   save(STORE_KEY, records);
   save(CATEGORY_KEY, categories);
   save(CATEGORY_BUDGET_KEY, categoryBudgets);
+  save(MONTHLY_BUDGETS_KEY, monthlyBudgets);
   if(data.monthlyBudget !== undefined) localStorage.setItem(BUDGET_KEY, String(data.monthlyBudget || 0));
   if(data.theme) localStorage.setItem(THEME_KEY, data.theme);
   if(data.themeColor) localStorage.setItem(THEME_COLOR_KEY, data.themeColor);
@@ -673,9 +589,11 @@ function restoreSafetySnapshot(){
   records = snapshot.records.map(normalizeRecord).filter(Boolean);
   categories = normalizeCategories(snapshot.categories || categories);
   categoryBudgets = snapshot.categoryBudgets && typeof snapshot.categoryBudgets === 'object' ? snapshot.categoryBudgets : {};
+  monthlyBudgets = snapshot.monthlyBudgets && typeof snapshot.monthlyBudgets === 'object' ? snapshot.monthlyBudgets : monthlyBudgets;
   save(STORE_KEY, records);
   save(CATEGORY_KEY, categories);
   save(CATEGORY_BUDGET_KEY, categoryBudgets);
+  save(MONTHLY_BUDGETS_KEY, monthlyBudgets);
   if(snapshot.monthlyBudget !== undefined) localStorage.setItem(BUDGET_KEY, String(snapshot.monthlyBudget || 0));
   renderAll();
   showToast('已還原安全快照');

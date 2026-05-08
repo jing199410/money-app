@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="輕帳" />
-  <link rel="manifest" href="manifest.json?v=5-theme-system" />
+  <link rel="manifest" href="manifest.json?v=5-1-month-budget" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=5-theme-system" />
+  <link rel="stylesheet" href="style.css?v=5-1-month-budget" />
   <title>輕帳</title>
 </head>
 <body>
@@ -44,6 +44,32 @@
         <span>今日支出</span>
         <strong id="todayExpense">NT$ 0</strong>
       </div>
+    </section>
+
+    <section class="budget-home-card soft-card page page-home active" id="monthBudgetCard">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow mini-eyebrow">BUDGET CARE</p>
+          <h2>本月預算安心卡</h2>
+        </div>
+        <span class="month-pill" id="budgetHomeMonth">本月</span>
+      </div>
+      <div class="budget-home-grid">
+        <div class="budget-home-box">
+          <span>本月預算</span>
+          <strong id="budgetHomeAmount">尚未設定</strong>
+        </div>
+        <div class="budget-home-box">
+          <span>已支出</span>
+          <strong id="budgetHomeExpense">NT$ 0</strong>
+        </div>
+        <div class="budget-home-box wide">
+          <span>剩餘金額</span>
+          <strong id="budgetHomeLeft">尚未設定</strong>
+        </div>
+      </div>
+      <div class="progress-track budget-home-track"><div id="budgetHomeProgress" class="progress-bar"></div></div>
+      <p class="budget-note" id="budgetHomeNote">尚未設定本月預算，可以到設定頁新增。</p>
     </section>
 
     <section class="quick-card soft-card page page-home active" id="pageHome">
@@ -89,23 +115,6 @@
         <h2>統計</h2>
         <span class="month-pill" id="statsMonthLabel">本月</span>
       </div>
-      <div class="budget-card">
-        <div class="budget-top">
-          <div>
-            <p class="muted">本月預算</p>
-            <strong id="budgetAmountText">NT$ 0</strong>
-          </div>
-          <button class="text-btn" id="editBudgetBtn">設定</button>
-        </div>
-        <div class="progress-track"><div id="budgetProgress" class="progress-bar"></div></div>
-        <p class="budget-note" id="budgetNote">尚未設定預算</p>
-      </div>
-      <div class="section-head compact inner-head">
-        <h3 class="sub-title">分類預算</h3>
-        <button class="text-btn" id="editCategoryBudgetBtn">設定</button>
-      </div>
-      <div class="category-budget-list" id="categoryBudgetList"></div>
-
       <h3 class="sub-title">支出分類圖表</h3>
       <div class="chart-list" id="chartList"></div>
     </section>
@@ -171,6 +180,24 @@
           <p>自訂收入與支出分類，不使用 emoji。</p>
         </div>
         <button class="small-btn" id="openCategoryPanel2">管理</button>
+      </div>
+      <div class="setting-row stack monthly-budget-setting">
+        <div>
+          <strong>月預算設定</strong>
+          <p>設定每個月可使用的支出預算，首頁會自動追蹤使用狀況。</p>
+        </div>
+        <div class="monthly-budget-form">
+          <label>
+            <span class="field-label">月份</span>
+            <input id="budgetMonthInput" class="note-input" type="month" />
+          </label>
+          <label>
+            <span class="field-label">預算金額</span>
+            <input id="monthlyBudgetInput" class="note-input" type="number" inputmode="decimal" min="0" placeholder="例如：20000" />
+          </label>
+        </div>
+        <button class="small-btn" id="saveMonthlyBudgetBtn">儲存本月預算</button>
+        <p class="budget-setting-status" id="monthlyBudgetStatus">尚未設定本月預算。</p>
       </div>
       <div class="setting-row stack theme-setting-block">
         <div class="setting-title-row">
@@ -274,30 +301,6 @@
     <div class="manage-list" id="manageCategoryList"></div>
   </section>
 
-  <div class="modal-mask" id="budgetModal">
-    <div class="modal-card">
-      <h2>設定每月預算</h2>
-      <p class="muted">若已設定分類預算，本月總預算會自動加總分類預算。</p>
-      <input id="budgetInput" class="note-input" type="number" inputmode="decimal" placeholder="例如：12000" />
-      <div class="modal-actions">
-        <button class="ghost-btn" id="cancelBudgetBtn">取消</button>
-        <button class="primary-btn inline" id="saveBudgetBtn">儲存</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-mask" id="categoryBudgetModal">
-    <div class="modal-card large">
-      <h2>設定分類預算</h2>
-      <p class="muted">設定後會自動加總到本月總預算，例如餐飲＋交通＋娛樂。</p>
-      <div class="category-budget-editor" id="categoryBudgetEditor"></div>
-      <div class="modal-actions">
-        <button class="ghost-btn" id="cancelCategoryBudgetBtn">取消</button>
-        <button class="primary-btn inline" id="saveCategoryBudgetBtn">儲存</button>
-      </div>
-    </div>
-  </div>
-
   <div class="modal-mask" id="editRecordModal">
     <div class="modal-card large">
       <h2>編輯紀錄</h2>
@@ -320,7 +323,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=5-theme-system"></script>
-<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js?v=5-theme-system")); }</script>
+  <script src="app.js?v=5-1-month-budget"></script>
+<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js?v=5-1-month-budget")); }</script>
 </body>
 </html>

@@ -391,3 +391,93 @@ body.dark .theme-card.is-active{background:linear-gradient(135deg, color-mix(in 
 }
 @media(min-width:430px){.theme-grid{grid-template-columns:1fr 1fr}.theme-grid .theme-card:last-child{grid-column:1 / -1}}
 @media(max-width:380px){.setting-title-row{flex-direction:column}.theme-current-pill{align-self:flex-start}.theme-swatches i{width:23px;height:23px}.theme-card{padding:14px}}
+
+/* V5.1：月預算安心版 */
+.mini-eyebrow{
+  margin-bottom:6px;
+  letter-spacing:.26em;
+  font-size:11px;
+}
+.budget-home-card{
+  position:relative;
+  overflow:hidden;
+}
+.budget-home-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,0));
+  pointer-events:none;
+}
+.budget-home-card > *{
+  position:relative;
+  z-index:1;
+}
+.budget-home-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+.budget-home-box{
+  border:1px solid var(--line);
+  background:var(--surface, rgba(255,255,255,.62));
+  border-radius:22px;
+  padding:15px 16px;
+}
+.budget-home-box.wide{
+  grid-column:1 / -1;
+}
+.budget-home-box span{
+  display:block;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:850;
+  margin-bottom:7px;
+}
+.budget-home-box strong{
+  display:block;
+  color:var(--text-strong);
+  font-size:21px;
+  font-weight:850;
+  letter-spacing:-.035em;
+  font-variant-numeric:tabular-nums;
+}
+.budget-home-track{
+  margin-top:16px;
+  background:rgba(255,255,255,.66);
+}
+body.dark .budget-home-track{
+  background:rgba(255,255,255,.10);
+}
+.monthly-budget-setting .monthly-budget-form{
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.monthly-budget-setting label{
+  display:block;
+  min-width:0;
+}
+.budget-setting-status{
+  width:100%;
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.6;
+  background:rgba(126,174,147,.10);
+  border:1px solid rgba(126,174,147,.18);
+  border-radius:16px;
+  padding:11px 13px;
+}
+@media(max-width:380px){
+  .budget-home-grid,
+  .monthly-budget-setting .monthly-budget-form{
+    grid-template-columns:1fr;
+  }
+  .budget-home-box strong{
+    font-size:19px;
+  }
+}
