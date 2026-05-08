@@ -3,6 +3,7 @@ const CATEGORY_KEY = 'moneyDiary.categories.v3';
 const BUDGET_KEY = 'moneyDiary.budget.v3';
 const CATEGORY_BUDGET_KEY = 'moneyDiary.categoryBudgets.v35';
 const THEME_KEY = 'moneyDiary.theme.v3';
+const THEME_COLOR_KEY = 'moneyDiary.themeColor.v5';
 const SAFETY_SNAPSHOT_KEY = 'moneyDiary.safetySnapshot.v41';
 const LAST_BACKUP_KEY = 'moneyDiary.lastBackupAt.v43';
 
@@ -84,7 +85,8 @@ function buildBackupPayload(){
     categories,
     categoryBudgets,
     monthlyBudget: localStorage.getItem(BUDGET_KEY) || '0',
-    theme: localStorage.getItem(THEME_KEY) || 'light'
+    theme: localStorage.getItem(THEME_KEY) || 'light',
+    themeColor: localStorage.getItem(THEME_COLOR_KEY) || 'berry'
   };
 }
 function createSafetySnapshot(reason='manual'){
@@ -131,6 +133,7 @@ function bindEvents(){
   $('incomeTab').onclick = () => switchType('income');
   $('saveBtn').onclick = addRecord;
   $('themeToggle').onclick = toggleTheme;
+  bindThemeColorCards();
   $('openCategoryPanel').onclick = openCategoryPanel;
   $('openCategoryPanel2').onclick = openCategoryPanel;
   $('closeCategoryPanel').onclick = closeCategoryPanel;
@@ -626,6 +629,7 @@ function importJSON(text){
   save(CATEGORY_BUDGET_KEY, categoryBudgets);
   if(data.monthlyBudget !== undefined) localStorage.setItem(BUDGET_KEY, String(data.monthlyBudget || 0));
   if(data.theme) localStorage.setItem(THEME_KEY, data.theme);
+  if(data.themeColor) localStorage.setItem(THEME_COLOR_KEY, data.themeColor);
   applyTheme();
 }
 
@@ -723,9 +727,61 @@ function parseCSV(text){
 }
 
 
-function toggleTheme(){ document.body.classList.toggle('dark'); localStorage.setItem(THEME_KEY, document.body.classList.contains('dark') ? 'dark' : 'light'); }
+const themeColorNames = {
+  berry: '奶油莓果',
+  'milk-tea': '奶茶杏色',
+  business: '商務灰綠',
+  silver: 'iOS 白銀',
+  cocoa: '夜間可可'
+};
+const validThemeColors = Object.keys(themeColorNames);
+
+function getThemeMode(){
+  return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+}
+function getThemeColor(){
+  const saved = localStorage.getItem(THEME_COLOR_KEY) || 'berry';
+  return validThemeColors.includes(saved) ? saved : 'berry';
+}
+function toggleTheme(){
+  const next = getThemeMode() === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme();
+}
 function applyTheme(){
-  document.body.classList.toggle('dark', localStorage.getItem(THEME_KEY)==='dark');
+  const mode = getThemeMode();
+  const color = getThemeColor();
+  document.documentElement.dataset.theme = mode;
+  document.documentElement.dataset.themeColor = color;
+  document.body.classList.toggle('dark', mode === 'dark');
+  document.body.dataset.theme = mode;
+  document.body.dataset.themeColor = color;
+  const themeToggle = $('themeToggle');
+  if(themeToggle){
+    themeToggle.textContent = mode === 'dark' ? '☀' : '☾';
+    themeToggle.setAttribute('aria-label', mode === 'dark' ? '切換淺色模式' : '切換深色模式');
+  }
+  updateThemeColorUI(color);
+}
+function bindThemeColorCards(){
+  document.querySelectorAll('[data-theme-color].theme-card').forEach(card => {
+    card.onclick = () => setThemeColor(card.dataset.themeColor);
+  });
+}
+function setThemeColor(color){
+  if(!validThemeColors.includes(color)) color = 'berry';
+  localStorage.setItem(THEME_COLOR_KEY, color);
+  applyTheme();
+  showToast(`已套用${themeColorNames[color]}`);
+}
+function updateThemeColorUI(color){
+  document.querySelectorAll('[data-theme-color].theme-card').forEach(card => {
+    const active = card.dataset.themeColor === color;
+    card.classList.toggle('is-active', active);
+    card.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  const label = $('currentThemeColorLabel');
+  if(label) label.textContent = themeColorNames[color] || themeColorNames.berry;
 }
 function escapeHTML(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 function escapeAttr(s){ return escapeHTML(s).replace(/'/g,'&#039;'); }

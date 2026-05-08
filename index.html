@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-theme="light" data-theme-color="berry">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="輕帳" />
-  <link rel="manifest" href="manifest.json?v=4.9-settings-ui" />
+  <link rel="manifest" href="manifest.json?v=5-theme-system" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=4.9-settings-ui" />
+  <link rel="stylesheet" href="style.css?v=5-theme-system" />
   <title>輕帳</title>
 </head>
 <body>
@@ -172,6 +172,63 @@
         </div>
         <button class="small-btn" id="openCategoryPanel2">管理</button>
       </div>
+      <div class="setting-row stack theme-setting-block">
+        <div class="setting-title-row">
+          <div>
+            <strong>主題色</strong>
+            <p>外觀模式保留深色 / 淺色，這裡可以切換整體色系。</p>
+          </div>
+          <span class="theme-current-pill" id="currentThemeColorLabel">奶油莓果</span>
+        </div>
+        <div class="theme-grid" id="themeColorGrid" aria-label="主題色切換">
+          <button class="theme-card" type="button" data-theme-color="berry" aria-label="切換為奶油莓果主題">
+            <span class="theme-card-top">
+              <strong>奶油莓果</strong>
+              <em>使用中</em>
+            </span>
+            <span class="theme-swatches">
+              <i style="--swatch:#f8f2f1"></i><i style="--swatch:#fffdfc"></i><i style="--swatch:#e8a6a1"></i><i style="--swatch:#7eae93"></i>
+            </span>
+          </button>
+          <button class="theme-card" type="button" data-theme-color="milk-tea" aria-label="切換為奶茶杏色主題">
+            <span class="theme-card-top">
+              <strong>奶茶杏色</strong>
+              <em>使用中</em>
+            </span>
+            <span class="theme-swatches">
+              <i style="--swatch:#f7efe3"></i><i style="--swatch:#fffaf3"></i><i style="--swatch:#d8a76f"></i><i style="--swatch:#8fb59f"></i>
+            </span>
+          </button>
+          <button class="theme-card" type="button" data-theme-color="business" aria-label="切換為商務灰綠主題">
+            <span class="theme-card-top">
+              <strong>商務灰綠</strong>
+              <em>使用中</em>
+            </span>
+            <span class="theme-swatches">
+              <i style="--swatch:#eef3ef"></i><i style="--swatch:#fbfdfb"></i><i style="--swatch:#789584"></i><i style="--swatch:#b88578"></i>
+            </span>
+          </button>
+          <button class="theme-card" type="button" data-theme-color="silver" aria-label="切換為 iOS 白銀主題">
+            <span class="theme-card-top">
+              <strong>iOS 白銀</strong>
+              <em>使用中</em>
+            </span>
+            <span class="theme-swatches">
+              <i style="--swatch:#f4f6f8"></i><i style="--swatch:#ffffff"></i><i style="--swatch:#7d8da1"></i><i style="--swatch:#7aa7a0"></i>
+            </span>
+          </button>
+          <button class="theme-card" type="button" data-theme-color="cocoa" aria-label="切換為夜間可可主題">
+            <span class="theme-card-top">
+              <strong>夜間可可</strong>
+              <em>使用中</em>
+            </span>
+            <span class="theme-swatches">
+              <i style="--swatch:#f4ece5"></i><i style="--swatch:#fffaf6"></i><i style="--swatch:#a8795e"></i><i style="--swatch:#d09a8b"></i>
+            </span>
+          </button>
+        </div>
+        <p class="theme-hint">切換後會立即套用，並自動記住妳選的主題。</p>
+      </div>
       <div class="setting-row stack">
         <div>
           <strong>資料備份 / 匯入</strong>
@@ -263,7 +320,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=4.5"></script>
-<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js?v=4.5")); }</script>
+  <script src="app.js?v=5-theme-system"></script>
+<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js?v=5-theme-system")); }</script>
 </body>
 </html>
