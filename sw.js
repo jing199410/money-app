@@ -1,17 +1,18 @@
-const CACHE_NAME = 'money-diary-v5-1-month-budget';
-const ASSETS = ['./','./index.html','./style.css','./app.js','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+// V5_REAL_CLEAN_RESTORE_2026_05_08_NO_BUDGET
+// Clean restore service worker: clears old caches and unregisters itself so old V5.1 files stop sticking.
+self.addEventListener('install', (event) => {
   self.skipWaiting();
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))));
 });
-self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null))).then(() => self.clients.claim()));
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
-self.addEventListener('fetch', event => {
-  const request = event.request;
-  if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('./index.html')));
-    return;
-  }
-  event.respondWith(caches.match(request).then(cached => cached || fetch(request)));
+
+self.addEventListener('fetch', () => {
+  // Intentionally no cache interception. Always let the browser/network handle requests.
 });
